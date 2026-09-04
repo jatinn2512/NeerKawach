@@ -1,0 +1,53 @@
+# Dependencies and build output
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# Environment and local configuration
+.env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+ENV/
+
+# Coverage, logs, and OS/editor files
+.coverage
+htmlcov/
+coverage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local/generated geospatial data; retain directory placeholders
+data/dem/*
+!data/dem/.gitkeep
+data/drainage/*
+!data/drainage/.gitkeep
+data/rainfall/*
+!data/rainfall/.gitkeep
+data/roads/*
+!data/roads/.gitkeep
+data/validation/*
+!data/validation/.gitkeep
