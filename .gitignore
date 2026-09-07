@@ -14,6 +14,8 @@ build/
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
+frontend/.cache/
+frontend/.parcel-cache/
 backend/.env
 backend/.env.*
 !backend/.env.example
@@ -23,9 +25,18 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.pyright/
+.tox/
+.nox/
 .venv/
 venv/
 ENV/
+
+# Python packaging artifacts
+.eggs/
+*.egg-info/
+pip-wheel-metadata/
 
 # Coverage, logs, and OS/editor files
 .coverage
