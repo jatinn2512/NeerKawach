@@ -53,7 +53,7 @@ export function AppShell({
   }, [sim.signedIn, navigate]);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="fo-app-shell flex min-h-screen bg-background">
       <aside className="fixed inset-y-0 left-0 flex w-64 flex-col border-r border-sidebar-border bg-sidebar">
         <div className="flex items-center gap-2.5 border-b border-sidebar-border px-4 py-4">
           <span className="flex size-9 items-center justify-center rounded-md bg-primary/15 text-primary">
@@ -126,7 +126,7 @@ export function AppShell({
       </aside>
 
       <div className="flex min-h-screen flex-1 flex-col pl-64">
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border bg-background/95 px-6 py-3 backdrop-blur">
+        <header className="fo-app-header sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border bg-background/95 px-6 py-3 backdrop-blur">
           <div>
             <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
             <p className="text-xs text-muted-foreground">

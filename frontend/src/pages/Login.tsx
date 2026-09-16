@@ -17,7 +17,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
+    <div className="fo-login-page grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
       <div className="relative hidden flex-col justify-between border-r border-border bg-sidebar p-12 lg:flex">
         <div className="flex items-center gap-3">
           <span className="flex size-11 items-center justify-center rounded-md bg-primary/15 text-primary">
@@ -142,4 +142,3 @@ export function LoginPage() {
     </div>
   );
 }
-

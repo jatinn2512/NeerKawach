@@ -58,46 +58,46 @@
 
 :root {
   --radius: 0.375rem;
-  --background: oklch(0.19 0.018 250);
-  --foreground: oklch(0.94 0.008 240);
-  --card: oklch(0.235 0.02 252);
-  --card-foreground: oklch(0.94 0.008 240);
-  --panel: oklch(0.215 0.019 251);
-  --panel-foreground: oklch(0.94 0.008 240);
-  --popover: oklch(0.235 0.02 252);
-  --popover-foreground: oklch(0.94 0.008 240);
-  --primary: oklch(0.72 0.13 210);
-  --primary-foreground: oklch(0.17 0.02 250);
-  --secondary: oklch(0.29 0.021 252);
-  --secondary-foreground: oklch(0.93 0.008 240);
-  --muted: oklch(0.27 0.02 252);
-  --muted-foreground: oklch(0.68 0.016 245);
-  --accent: oklch(0.31 0.026 250);
-  --accent-foreground: oklch(0.95 0.008 240);
-  --destructive: oklch(0.6 0.2 25);
-  --destructive-foreground: oklch(0.97 0.008 240);
-  --border: oklch(0.32 0.021 252);
-  --input: oklch(0.3 0.021 252);
-  --ring: oklch(0.72 0.13 210);
+  --background: #020d18;
+  --foreground: #edf7ff;
+  --card: #061a2b;
+  --card-foreground: #edf7ff;
+  --panel: #041525;
+  --panel-foreground: #edf7ff;
+  --popover: #061a2b;
+  --popover-foreground: #edf7ff;
+  --primary: #08b9ff;
+  --primary-foreground: #02101b;
+  --secondary: #09253a;
+  --secondary-foreground: #edf7ff;
+  --muted: #0a2336;
+  --muted-foreground: #87a6be;
+  --accent: #0b314b;
+  --accent-foreground: #edf7ff;
+  --destructive: #ff3c4d;
+  --destructive-foreground: #fff5f6;
+  --border: #16415c;
+  --input: #12405b;
+  --ring: #43d8ff;
 
-  --risk-low: oklch(0.72 0.17 150);
-  --risk-moderate: oklch(0.8 0.15 90);
-  --risk-high: oklch(0.72 0.17 55);
-  --risk-severe: oklch(0.63 0.21 25);
+  --risk-low: #49d978;
+  --risk-moderate: #ffb423;
+  --risk-high: #ff7a45;
+  --risk-severe: #ff3c4d;
 
-  --status-ok: oklch(0.72 0.17 150);
-  --status-busy: oklch(0.72 0.13 210);
-  --status-warn: oklch(0.8 0.15 90);
-  --status-down: oklch(0.63 0.21 25);
+  --status-ok: #49d978;
+  --status-busy: #08b9ff;
+  --status-warn: #ffb423;
+  --status-down: #ff3c4d;
 
-  --sidebar: oklch(0.165 0.018 252);
-  --sidebar-foreground: oklch(0.88 0.01 240);
-  --sidebar-primary: oklch(0.72 0.13 210);
-  --sidebar-primary-foreground: oklch(0.17 0.02 250);
-  --sidebar-accent: oklch(0.26 0.022 252);
-  --sidebar-accent-foreground: oklch(0.96 0.008 240);
-  --sidebar-border: oklch(0.28 0.02 252);
-  --sidebar-ring: oklch(0.72 0.13 210);
+  --sidebar: #03101d;
+  --sidebar-foreground: #d9effc;
+  --sidebar-primary: #08b9ff;
+  --sidebar-primary-foreground: #02101b;
+  --sidebar-accent: #09253a;
+  --sidebar-accent-foreground: #f2fbff;
+  --sidebar-border: #12364e;
+  --sidebar-ring: #43d8ff;
 }
 
 .dark {
@@ -136,7 +136,7 @@
 
 /* Leaflet dark surface tweaks */
 .leaflet-container {
-  background: oklch(0.16 0.018 252);
+  background: #020b15;
   font-family: var(--font-sans);
 }
 .leaflet-control-attribution {
@@ -154,6 +154,33 @@
 }
 .leaflet-bar a:hover {
   background: var(--accent) !important;
+}
+
+/* Shared shell treatment so authenticated screens use the landing palette. */
+.fo-app-shell {
+  background:
+    radial-gradient(circle at 78% 0%, rgba(0, 140, 220, .08), transparent 28%),
+    var(--background);
+}
+
+.fo-app-shell > aside {
+  box-shadow: 12px 0 32px rgba(0, 0, 0, .14);
+}
+
+.fo-app-header {
+  border-color: rgba(57, 168, 225, .2) !important;
+  background: rgba(3, 15, 27, .9) !important;
+  backdrop-filter: blur(12px);
+}
+
+.fo-login-page {
+  background:
+    radial-gradient(circle at 78% 38%, rgba(0, 140, 220, .08), transparent 32%),
+    var(--background);
+}
+
+.fo-login-page > div:last-child {
+  background: rgba(2, 13, 24, .48);
 }
 
 /* Public FloodOps landing page */
