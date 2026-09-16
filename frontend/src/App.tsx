@@ -12,6 +12,7 @@ import { DataLayersPage } from "@/pages/DataLayers";
 import { SystemStatusPage } from "@/pages/SystemStatus";
 import { SettingsPage } from "@/pages/Settings";
 import { PublicAlertsPage } from "@/pages/PublicAlerts";
+import { HomePage } from "@/pages/Home";
 
 function NotFound() {
   return (
@@ -29,14 +30,16 @@ function NotFound() {
 function RouterView() {
   const path = usePathname();
   const sim = useSim();
+  const isPublicPath = path === "/" || path === "/login";
 
   useEffect(() => {
-    if (!sim.signedIn && path !== "/") navigate("/");
-  }, [path, sim.signedIn]);
+    if (!sim.signedIn && !isPublicPath) navigate("/");
+  }, [path, sim.signedIn, isPublicPath]);
 
-  if (!sim.signedIn) return <LoginPage />;
+  if (!sim.signedIn) return path === "/login" ? <LoginPage /> : <HomePage />;
   switch (path) {
-    case "/": return <LoginPage />;
+    case "/": return <HomePage />;
+    case "/login": return <DashboardPage />;
     case "/dashboard": return <DashboardPage />;
     case "/simulation": return <SimulationPage />;
     case "/map": return <MapPage />;

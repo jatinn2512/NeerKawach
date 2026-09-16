@@ -1,4 +1,4 @@
-import { useNavigate } from "@/utils/router";
+import { RouteLink, useNavigate } from "@/utils/router";
 import { Lock, ShieldCheck, User, Waves } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { REGION } from "@/data/pilot";
@@ -134,10 +134,12 @@ export function LoginPage() {
               Bengaluru pilot dataset.
             </p>
           </div>
+          <RouteLink to="/" className="mt-5 block text-center text-xs text-muted-foreground hover:text-primary">
+            ← Back to FloodOps landing page
+          </RouteLink>
         </div>
       </div>
     </div>
   );
 }
-
 
