@@ -1,0 +1,51 @@
+{
+  "model_name": "FloodOps P7 flood inundation and street impact products",
+  "source_phase": "P6",
+  "source_depth_directory": "data/coupling/results/coupled_surface_depth",
+  "source_max_depth_raster": "data/coupling/results/coupled_max_depth.tif",
+  "source_summary": "data/coupling/results/coupling_summary.json",
+  "source_water_balance": "data/coupling/results/coupling_water_balance.json",
+  "study_area_config": "config/study_area.json",
+  "road_source": "data/roads/processed/bellandur_roads.geojson",
+  "depth_threshold_m": 0.05,
+  "threshold_definition": "A raster cell is classified as inundated when its P6 surface-water depth is at least 0.05 m.",
+  "threshold_status": "project_defined_visualization_decision_threshold_not_a_scientific_standard",
+  "risk_classification": {
+    "none": {
+      "code": 0,
+      "minimum_depth_m": 0.0,
+      "maximum_depth_m_exclusive": 0.05
+    },
+    "shallow": {
+      "code": 1,
+      "minimum_depth_m": 0.05,
+      "maximum_depth_m_exclusive": 0.15
+    },
+    "moderate": {
+      "code": 2,
+      "minimum_depth_m": 0.15,
+      "maximum_depth_m_exclusive": 0.30
+    },
+    "deep": {
+      "code": 3,
+      "minimum_depth_m": 0.30,
+      "maximum_depth_m_exclusive": null
+    }
+  },
+  "road_intersection": {
+    "method": "rasterize_existing_OSM_road_geometry_all_touched_against_P6_depth_grid",
+    "road_crs": "EPSG:4326",
+    "analysis_crs": "source_P6_raster_CRS",
+    "road_elevation_used": false,
+    "duration_definition": "Sum the interval from timestamp i to timestamp i+1 when the road maximum intersecting depth at timestamp i is above the threshold; the final post-storm snapshot has no following interval."
+  },
+  "provenance": {
+    "source_phase": "P6",
+    "source_model_identifier": "p6-coupling-1.0.1",
+    "source_crs": "EPSG:32643",
+    "output_vector_crs": "EPSG:4326",
+    "depth_units": "metres",
+    "area_units": "square metres",
+    "road_length_units": "metres"
+  }
+}

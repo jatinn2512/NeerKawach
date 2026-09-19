@@ -1,0 +1,14 @@
+{
+  "working_crs": "EPSG:32643",
+  "working_crs_name": "WGS 84 / UTM zone 43N",
+  "target_resolution_m": 30.0,
+  "timestep_seconds": 300.0,
+  "runoff_coefficient": 0.75,
+  "infiltration_rate_mm_per_hour": 0.5,
+  "initial_water_depth_m": 0.0,
+  "routing_timescale_seconds": 600.0,
+  "d8_preference_factor": 1.25,
+  "boundary_condition": "closed",
+  "boundary_outflow_fraction": 0.25,
+  "mass_balance_tolerance_m3": 0.000001
+}

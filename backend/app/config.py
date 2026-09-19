@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8000
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    open_meteo_enabled: bool = True
+    open_meteo_base_url: str = "https://api.open-meteo.com"
+    rainviewer_enabled: bool = True
+    rainviewer_base_url: str = "https://api.rainviewer.com/public/weather-maps.json"
+    rainfall_http_timeout_seconds: float = 20.0
+    rainfall_http_retries: int = 2
 
     model_config = SettingsConfigDict(
         env_file=".env",

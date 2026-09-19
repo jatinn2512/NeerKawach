@@ -1,0 +1,66 @@
+{
+  "model_name": "Bellandur P6 surface-to-drainage prototype coupling",
+  "canonical_study_area": "config/study_area.json",
+  "surface_grid": {
+    "grid_definition": "data/surface_routing/input/working_grid.json",
+    "depth_template": "data/surface_routing/input/dem_working.tif",
+    "flow_direction": "data/surface_routing/input/flow_direction_working.tif",
+    "crs": "EPSG:32643",
+    "cell_representation": "30 m projected raster cell with water depth in metres",
+    "timestep_seconds": 300
+  },
+  "drainage_model": {
+    "p4_connections": "data/drainage/processed/surface_drainage_connections.geojson",
+    "p4_nodes": "data/drainage/processed/drainage_nodes.geojson",
+    "p5_model": "data/swmm/models/bellandur_prototype.inp",
+    "p5_mapping": "data/swmm/metadata/p4_to_swmm_mapping.json",
+    "hydraulic_timestep_seconds": 30,
+    "crs": "EPSG:4326"
+  },
+  "architecture": {
+    "name": "p3_surface_excess_to_p5_external_inflow",
+    "rainfall_owner": "P3",
+    "p3_generates_surface_excess": true,
+    "p5_subcatchment_rainfall_disabled": true,
+    "double_counting_rule": "The derived coupling SWMM input contains zero rainfall; only P3 surface excess is transferred as generated node inflow.",
+    "exchange_order": "apply_previous_swmm_overflow_to_surface_then_run_p3_surface_step_then_transfer_surface_water_then_run_swmm_interval"
+  },
+  "transfer": {
+    "method": "available_surface_volume_limited_by_configured_rate",
+    "maximum_transfer_rate_cms_per_connection": 0.25,
+    "maximum_transfer_rate_source": "model_assumption",
+    "maximum_transfer_rate_units": "m3/s per P4 connection candidate",
+    "exchange_interval_seconds": 300,
+    "volume_rule": "transfer_volume = min(available_surface_volume, maximum_transfer_rate_cms_per_connection * exchange_interval_seconds)",
+    "surface_water_units": "m3",
+    "drainage_inflow_units": "m3/s"
+  },
+  "overflow_return": {
+    "derived_swmm_allow_ponding": false,
+    "method": "integrated_SWMM_node_flooding_rate_over_30_second_hydraulic_steps",
+    "mapped_return_rule": "Return only flooding volume from a SWMM node that has an existing P4 surface connection candidate; place it in that candidate's mapped P3 working cell.",
+    "unmapped_rule": "Record flooding at nodes without a defensible P4 surface connection but do not fabricate a surface location.",
+    "node_depth_rule": "Node depth/head are diagnostics only and are not converted directly to surface depth.",
+    "source": "model_assumption"
+  },
+  "rainfall": {
+    "source": "data/surface_routing/tests/synthetic_rainfall.json",
+    "source_type": "synthetic_test",
+    "units": "mm per 300 second timestep",
+    "historical": false
+  },
+  "validation": {
+    "mass_balance_tolerance_m3": 0.001,
+    "timestamp_tolerance_seconds": 0.001,
+    "require_unique_connection_ids": true,
+    "require_valid_p4_and_swmm_nodes": true,
+    "require_no_rainfall_in_derived_swmm_model": true
+  },
+  "provenance": {
+    "surface_depth_source": "P3 dynamic surface routing",
+    "connection_source": "P4 surface_drainage_connections.geojson",
+    "drainage_node_source": "P4 drainage_nodes.geojson and P4-to-SWMM mapping",
+    "transfer_capacity_source": "model_assumption",
+    "overflow_location_source": "existing P4 surface connection candidate only"
+  }
+}

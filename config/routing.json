@@ -1,0 +1,29 @@
+{
+  "model_name": "FloodOps P8 flood-safe dynamic routing",
+  "source_phase": "P8",
+  "study_area_config": "config/study_area.json",
+  "source_road_graph": "data/roads/processed/bellandur_roads.graphml",
+  "source_road_geojson": "data/roads/processed/bellandur_roads.geojson",
+  "source_p7_road_timeseries": "data/inundation/roads/road_impact_timeseries.csv",
+  "source_p7_road_summary": "data/inundation/roads/road_impact_summary.csv",
+  "source_p7_config": "config/inundation.json",
+  "flooded_threshold_m": 0.05,
+  "closure_threshold_m": 0.3,
+  "flood_penalty_factor": 10.0,
+  "snap_tolerance_m": 500.0,
+  "cost_definition": "normal length_m; flooded_traversable length_m * (1 + flood_penalty_factor * depth_m / closure_threshold_m); closed edges are excluded only from the flood-aware search",
+  "threshold_status": "project_defined_routing_assumptions_not_universal_engineering_standards",
+  "missing_p7_data_policy": "never infer dry conditions; baseline may use the immutable graph, flood-aware search excludes edges without a timestamped P7 value",
+  "outputs": {
+    "route_directory": "data/routing/routes",
+    "metrics_directory": "data/routing/metrics",
+    "metadata_directory": "data/routing/metadata"
+  },
+  "provenance": {
+    "road_graph_crs": "EPSG:4326",
+    "route_vector_crs": "EPSG:4326",
+    "depth_units": "metres",
+    "distance_units": "metres",
+    "cost_units": "metre_equivalent"
+  }
+}
