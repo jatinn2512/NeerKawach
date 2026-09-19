@@ -58,7 +58,25 @@ data/drainage/*
 !data/drainage/.gitkeep
 data/rainfall/*
 !data/rainfall/.gitkeep
+!data/rainfall/metadata/
+data/rainfall/metadata/*
+!data/rainfall/metadata/source_catalog.json
 data/roads/*
 !data/roads/.gitkeep
 data/validation/*
 !data/validation/.gitkeep
+
+# P3 generated projected rasters, depth time-series and previews; retain the
+# synthetic forcing fixture and regenerate outputs with scripts/data/run_surface_routing.py.
+data/surface_routing/input/*
+data/surface_routing/results/*
+!data/surface_routing/tests/
+!data/surface_routing/tests/**
+
+# P7 generated inundation rasters, vectors, metrics and road-impact products.
+data/inundation/*
+!data/inundation/.gitkeep
+
+# P8 generated route GeoJSON, metrics and provenance products.
+data/routing/*
+!data/routing/.gitkeep
