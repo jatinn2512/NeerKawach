@@ -1,0 +1,22 @@
+{
+  "name": "Bellandur urban flood prototype",
+  "city": "Bengaluru",
+  "state": "Karnataka",
+  "country": "India",
+  "bbox": {
+    "min_lat": 12.925,
+    "min_lon": 77.65,
+    "max_lat": 12.945,
+    "max_lon": 77.67
+  },
+  "crs": "EPSG:4326",
+  "approximate_area_km2": 4.82,
+  "description": "A compact Bellandur prototype extent centered on Bellandur Lake, including adjacent Bellandur Road/Outer Ring Road urban fabric, lake-edge lowlands and connected road and water-flow context.",
+  "source": {
+    "map_reference": "OpenStreetMap Bellandur/Bellandur Lake features, queried with the bbox in this file",
+    "map_url": "https://www.openstreetmap.org/#map=14/12.9352/77.6649",
+    "lake_anchor_reference": "https://maps.apple.com/place?auid=8458407851321227372",
+    "reasoning": "The bbox contains the mapped Bellandur Lake anchor at approximately 12.9352, 77.6649 and the surrounding Bellandur/ORR urban road fabric. At Bengaluru latitude it is approximately 2.22 km north-south by 2.17 km east-west, or 4.82 km2 using a spherical Earth bbox-area calculation; this is large enough for meaningful roads, lake-edge lowlands and drainage context while remaining practical for a prototype.",
+    "coordinate_verification_date": "2026-09-17"
+  }
+}

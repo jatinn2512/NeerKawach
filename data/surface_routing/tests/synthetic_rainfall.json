@@ -1,0 +1,21 @@
+{
+  "source": "synthetic_test",
+  "description": "Deterministic engineering fixture only; not observed rainfall, IMD rainfall, DWR/QPE, IMERG, or a historical storm.",
+  "spatial_mode": "uniform",
+  "units": "mm",
+  "timestep_seconds": 300,
+  "records": [
+    {"timestamp": "2026-01-01T00:00:00Z", "rainfall_mm": 0.0},
+    {"timestamp": "2026-01-01T00:05:00Z", "rainfall_mm": 2.0},
+    {"timestamp": "2026-01-01T00:10:00Z", "rainfall_mm": 4.0},
+    {"timestamp": "2026-01-01T00:15:00Z", "rainfall_mm": 6.0},
+    {"timestamp": "2026-01-01T00:20:00Z", "rainfall_mm": 8.0},
+    {"timestamp": "2026-01-01T00:25:00Z", "rainfall_mm": 8.0},
+    {"timestamp": "2026-01-01T00:30:00Z", "rainfall_mm": 6.0},
+    {"timestamp": "2026-01-01T00:35:00Z", "rainfall_mm": 4.0},
+    {"timestamp": "2026-01-01T00:40:00Z", "rainfall_mm": 2.0},
+    {"timestamp": "2026-01-01T00:45:00Z", "rainfall_mm": 0.0},
+    {"timestamp": "2026-01-01T00:50:00Z", "rainfall_mm": 0.0},
+    {"timestamp": "2026-01-01T00:55:00Z", "rainfall_mm": 0.0}
+  ]
+}

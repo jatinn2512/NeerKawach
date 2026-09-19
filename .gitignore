@@ -73,6 +73,16 @@ data/surface_routing/results/*
 !data/surface_routing/tests/
 !data/surface_routing/tests/**
 
+# P5 generated SWMM models, reports, metadata, results and previews; retain
+# the tracked synthetic storm fixture used by the deterministic tests.
+data/swmm/*
+!data/swmm/tests/
+!data/swmm/tests/**
+
+# P6 generated coupling inputs, reports, rasters, time series and previews.
+data/coupling/*
+!data/coupling/.gitkeep
+
 # P7 generated inundation rasters, vectors, metrics and road-impact products.
 data/inundation/*
 !data/inundation/.gitkeep
