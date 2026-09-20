@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import type { MapLayers } from "./map-layers";
+import { useSim } from "@/state/simulation";
 
 const FloodMapView = lazy(() => import("./FloodMapView"));
 
@@ -27,6 +28,12 @@ export function MapSurface({
   showRoutes?: boolean | undefined;
   zoom?: number | undefined;
 }) {
+  const sim = useSim();
+  if (!sim.studyArea) {
+    return <div className={cn("flex items-center justify-center bg-panel p-6 text-center text-xs text-muted-foreground", className)}>
+      {sim.dataStatus === "loading" ? "Loading study-area metadata…" : "Study-area metadata unavailable. Start the backend and retry."}
+    </div>;
+  }
   return (
     <div className={cn("relative overflow-hidden bg-panel", className)}>
       <Suspense fallback={<MapSkeleton />}>
@@ -37,6 +44,8 @@ export function MapSurface({
             zoom={zoom}
           />
       </Suspense>
+      {sim.dataStatus === "unavailable" ? <div className="absolute inset-x-3 top-3 z-[1000] rounded-md border border-status-warn/40 bg-card/95 px-3 py-2 text-xs text-status-warn shadow-lg">Validated flood geometry is unavailable; no flood layer is being shown.</div> : null}
+      {sim.dataStatus === "error" ? <div className="absolute inset-x-3 top-3 z-[1000] rounded-md border border-status-down/40 bg-card/95 px-3 py-2 text-xs text-status-down shadow-lg">{sim.dataError}</div> : null}
     </div>
   );
 }

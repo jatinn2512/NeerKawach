@@ -1,7 +1,6 @@
 import { RouteLink, useNavigate } from "@/utils/router";
 import { Lock, ShieldCheck, User, Waves } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { REGION } from "@/data/pilot";
 import { useSim } from "@/state/simulation";
 
 export function LoginPage() {
@@ -46,19 +45,19 @@ export function LoginPage() {
               <dt className="text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
                 Pilot catchment
               </dt>
-              <dd className="mt-1 font-medium">{REGION.area}</dd>
+              <dd className="mt-1 font-medium">{sim.studyArea?.name ?? "Unavailable"}</dd>
             </div>
             <div>
               <dt className="text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
                 Coverage
               </dt>
-              <dd className="mt-1 font-medium tabular">{REGION.coverageKm2} km²</dd>
+              <dd className="mt-1 font-medium tabular">{sim.studyArea ? `${sim.studyArea.approximate_area_km2} km²` : "Unavailable"}</dd>
             </div>
             <div>
               <dt className="text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
                 Reference system
               </dt>
-              <dd className="mt-1 font-medium">{REGION.crs}</dd>
+              <dd className="mt-1 font-medium">{sim.studyArea?.crs ?? "Unavailable"}</dd>
             </div>
           </dl>
         </div>

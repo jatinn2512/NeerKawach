@@ -2,7 +2,6 @@ import { Download, FileDown, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Panel, RiskBadge, StatusPill } from "@/components/RiskUI";
-import { REGION, RISK_LABEL } from "@/data/pilot";
 import { useSim } from "@/state/simulation";
 
 const PAST = [
@@ -14,7 +13,7 @@ const PAST = [
 export function ReportsPage() {
   const sim = useSim();
   const m = sim.metrics;
-  const safer = sim.routes.find((r) => r.id === "safer")!;
+  const safer = sim.routeResults.floodAware;
 
   return (
     <AppShell
@@ -58,24 +57,24 @@ export function ReportsPage() {
           <Section
             title="Scenario & area"
             rows={[
-              ["Region", REGION.region],
-              ["City / municipal body", REGION.city],
-              ["Catchment", REGION.area],
-              ["Rainfall scenario", `${sim.scenario.name} (${sim.scenario.returnPeriod})`],
-              ["Rainfall intensity", `${sim.scenario.intensityMmHr} mm/hr`],
-              ["Simulation duration", `${sim.scenario.durationHrs} hours`],
+              ["Region", sim.studyArea?.state ?? "Unavailable"],
+              ["City / municipal body", sim.studyArea?.city ?? "Unavailable"],
+              ["Catchment", sim.studyArea?.name ?? "Unavailable"],
+              ["Replay timestamp", sim.selectedTimestamp ?? "Unavailable"],
+              ["Rainfall intensity", "Not supplied by P9 flood products"],
+              ["Simulation duration", "Not supplied by P9 flood products"],
               ["Simulation timestamp", m.startedAt],
             ]}
           />
           <Section
             title="Flood impact"
             rows={[
-              ["Maximum flood depth", `${m.maxDepthCm} cm`],
-              ["Affected area", `${m.affectedAreaKm2} km²`],
-              ["Affected zones", `${m.affectedZones} of ${sim.zones.length}`],
-              ["High-risk road segments", `${m.highRiskRoads} of ${sim.roads.length}`],
-              ["Critical facilities at risk", `${m.criticalAtRisk}`],
-              ["Overall risk classification", RISK_LABEL[m.overallRisk].toUpperCase()],
+              ["Maximum flood depth", sim.summary ? `${m.maxDepthCm.toFixed(1)} cm` : "Unavailable"],
+              ["Affected area", sim.summary ? `${m.affectedAreaKm2.toFixed(3)} km²` : "Unavailable"],
+              ["Affected zones", "Unavailable from P9 contract"],
+              ["Affected road segments", sim.roadImpact ? `${m.highRiskRoads}` : "Unavailable"],
+              ["Critical facilities at risk", "Unavailable from P9 contract"],
+              ["Overall risk classification", sim.summary ? m.overallRisk.toUpperCase() : "UNAVAILABLE"],
             ]}
           />
         </div>
@@ -93,15 +92,12 @@ export function ReportsPage() {
             </tr>
           </thead>
           <tbody>
-            {sim.roads
-              .filter((r) => r.risk !== "low")
-              .map((r) => (
-                <tr key={r.id} className="border-b border-border/60 last:border-0">
-                  <td className="py-2">{r.name}</td>
-                  <td className="py-2 text-muted-foreground">{r.category}</td>
-                  <td className="py-2 tabular">{r.depthCm} cm</td>
-                  <td className="py-2">
-                    <RiskBadge risk={r.risk} />
+            {(sim.roadImpact?.rows ?? []).map((r) => (
+                <tr key={String(r.road_id)} className="border-b border-border/60 last:border-0">
+                  <td className="py-2">{String(r.road_id ?? "Unnamed road")}</td>
+                  <td className="py-2 text-muted-foreground">Validated P7 output</td>
+                  <td className="py-2 tabular">{r.max_intersecting_depth_m == null ? "Unavailable" : `${Number(r.max_intersecting_depth_m) * 100} cm`}</td>
+                  <td className="py-2">{String(r.risk_class ?? "Unavailable")}
                   </td>
                 </tr>
               ))}
@@ -112,16 +108,16 @@ export function ReportsPage() {
           Critical infrastructure
         </h3>
         <ul className="mt-2 grid gap-2 md:grid-cols-2">
-          {sim.facilities.map((f) => (
+          {(sim.routeResults.floodAware ? [sim.routeResults.floodAware] : []).map((f) => (
             <li
-              key={f.id}
+              key={f.routing_mode}
               className="flex items-center justify-between gap-3 rounded-md border border-border bg-panel px-3 py-2 text-sm"
             >
               <span>
-                {f.name}
-                <span className="block text-xs text-muted-foreground">{f.type}</span>
+                Flood-aware route
+                <span className="block text-xs text-muted-foreground">P8 validated routing result</span>
               </span>
-              <RiskBadge risk={f.risk} />
+              <span className="text-xs font-semibold uppercase">{(f.maximum_flood_depth_m * 100).toFixed(1)} cm max depth</span>
             </li>
           ))}
         </ul>
@@ -130,10 +126,7 @@ export function ReportsPage() {
           Safer route advisory
         </h3>
         <p className="mt-2 text-sm">
-          {safer.label} — {safer.via}. Distance {safer.distanceKm} km, estimated{" "}
-          {safer.travelMin} min, {safer.highRiskSegments} high-risk segment(s),
-          maximum depth on route {safer.maxDepthCm} cm. Advisory only; passability
-          must be confirmed by field teams.
+          {safer ? `Flood-aware route: ${(safer.total_distance_m / 1000).toFixed(2)} km, maximum depth ${(safer.maximum_flood_depth_m * 100).toFixed(1)} cm. Advisory only; passability must be confirmed by field teams.` : "No validated route result is available."}
         </p>
       </Panel>
 
@@ -148,13 +141,13 @@ export function ReportsPage() {
             </tr>
           </thead>
           <tbody>
-            {PAST.map((p) => (
-              <tr key={p.id} className="border-b border-border/60 last:border-0">
-                <td className="px-4 py-2.5 font-medium tabular">{p.id}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">{p.scenario}</td>
-                <td className="px-4 py-2.5 text-muted-foreground tabular">{p.created}</td>
+            {sim.runs.map((p, index) => (
+              <tr key={`${p.phase}-${index}`} className="border-b border-border/60 last:border-0">
+                <td className="px-4 py-2.5 font-medium tabular">{`${p.phase}-${index + 1}`}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">{p.product}</td>
+                <td className="px-4 py-2.5 text-muted-foreground tabular">{p.generated_at_utc ?? "—"}</td>
                 <td className="px-4 py-2.5">
-                  <StatusPill status={p.status} />
+                  <StatusPill status="Available" />
                 </td>
               </tr>
             ))}

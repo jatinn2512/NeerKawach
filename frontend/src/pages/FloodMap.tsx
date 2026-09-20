@@ -1,4 +1,4 @@
-import { Layers, Pause, Play, X } from "lucide-react";
+import { Layers, X } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { MapSurface } from "@/components/MapSurface";
@@ -84,7 +84,7 @@ export function MapPage() {
   return (
     <AppShell
       title="Interactive Flood Map"
-      subtitle={`${sim.scenario.name} · T+${sim.metrics.clock} · max depth ${sim.metrics.maxDepthCm} cm`}
+      subtitle={`${sim.studyArea?.name ?? "Study area unavailable"} · ${sim.selectedTimestamp ?? "No validated timestamp"}`}
       flush
     >
       <div className="relative flex h-[calc(100vh-61px)]">
@@ -193,32 +193,26 @@ export function MapPage() {
 
           <div className="absolute inset-x-4 bottom-4 z-[1000] rounded-md border border-border bg-card/95 p-4 backdrop-blur">
             <div className="flex items-center gap-4">
-              <button
-                onClick={sim.togglePlay}
-                className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-                aria-label={sim.playing ? "Pause progression" : "Play progression"}
-              >
-                {sim.playing ? <Pause className="size-4" /> : <Play className="size-4" />}
-              </button>
-              <span className="text-xs text-muted-foreground tabular">00:00</span>
+              <span className="text-xs text-muted-foreground tabular">Replay</span>
+              <span className="text-xs text-muted-foreground tabular">{sim.timestamps[0] ?? "Unavailable"}</span>
               <input
                 type="range"
                 min={0}
-                max={4}
-                step={0.25}
-                value={sim.time}
-                onChange={(e) => sim.setTime(Number(e.target.value))}
+                max={Math.max(0, sim.timestamps.length - 1)}
+                step={1}
+                value={Math.max(0, sim.timestamps.indexOf(sim.selectedTimestamp ?? ""))}
+                onChange={(e) => { const timestamp = sim.timestamps[Number(e.target.value)]; if (timestamp) sim.setSelectedTimestamp(timestamp); }}
                 className="h-1.5 flex-1 accent-[var(--primary)]"
                 aria-label="Simulation timeline"
               />
-              <span className="text-xs text-muted-foreground tabular">04:00</span>
+              <span className="text-xs text-muted-foreground tabular">{sim.timestamps.at(-1) ?? "Unavailable"}</span>
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3 text-xs md:grid-cols-5">
-              <Stat label="Simulation time" value={`T+${sim.metrics.clock}`} />
-              <Stat label="Rainfall intensity" value={`${sim.metrics.rainfallNow} mm/hr`} />
-              <Stat label="Affected area" value={`${sim.metrics.affectedAreaKm2} km²`} />
-              <Stat label="Max flood depth" value={`${sim.metrics.maxDepthCm} cm`} />
+              <Stat label="Replay timestamp" value={sim.selectedTimestamp ?? "Unavailable"} />
+              <Stat label="Rainfall intensity" value="Not supplied by P9 flood products" />
+              <Stat label="Affected area" value={sim.summary ? `${sim.metrics.affectedAreaKm2.toFixed(3)} km²` : "Unavailable"} />
+              <Stat label="Max flood depth" value={sim.summary ? `${sim.metrics.maxDepthCm.toFixed(1)} cm` : "Unavailable"} />
               <div>
                 <p className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
                   Overall risk
@@ -234,7 +228,7 @@ export function MapPage() {
                     }[sim.metrics.overallRisk],
                   )}
                 >
-                  {RISK_LABEL[sim.metrics.overallRisk].toUpperCase()}
+                  {sim.summary ? RISK_LABEL[sim.metrics.overallRisk].toUpperCase() : "UNAVAILABLE"}
                 </p>
               </div>
             </div>

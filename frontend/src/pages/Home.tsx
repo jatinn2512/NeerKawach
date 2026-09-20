@@ -64,6 +64,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
 
 export function HomePage() {
   const sim = useSim();
+  const replayProgress = sim.timestamps.length && sim.selectedTimestamp ? (Math.max(0, sim.timestamps.indexOf(sim.selectedTimestamp)) / Math.max(1, sim.timestamps.length - 1)) * 100 : 0;
 
   return (
     <div className="fo-home">
@@ -119,13 +120,13 @@ export function HomePage() {
             <div className="fo-simulation-card">
               <CloudRain size={32} />
               <div>
-                <b>Live Simulation</b>
-                <small>{sim.metrics.clock} / 04:00</small>
+                <b>Validated replay</b>
+                <small>{sim.selectedTimestamp ?? "Data unavailable"}</small>
                 <div className="fo-progress">
-                  <span style={{ width: `${Math.min(100, (sim.time / 4) * 100)}%` }} />
+                  <span style={{ width: `${replayProgress}%` }} />
                 </div>
               </div>
-              <strong>{Math.round(Math.min(100, (sim.time / 4) * 100))}%</strong>
+              <strong>{sim.dataStatus === "ready" ? `${Math.round(replayProgress)}%` : "—"}</strong>
             </div>
 
             <div className="fo-legend">
@@ -173,7 +174,7 @@ export function HomePage() {
           <Brand compact />
         </div>
         <p className="fo-footer-links">Data-Driven Decisions <i>·</i> Safer Cities <i>·</i> Stronger Communities</p>
-        <p className="fo-status"><span /> System Online <small>v2.4.1 · T+{sim.metrics.clock}</small></p>
+        <p className="fo-status"><span /> {sim.health ? "API Online" : "API unavailable"} <small>{sim.selectedTimestamp ?? "No validated replay"}</small></p>
       </footer>
     </div>
   );

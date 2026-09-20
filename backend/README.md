@@ -1,6 +1,6 @@
 # FloodOps backend
 
-This is the initial FastAPI foundation for FloodOps. Run it from this
+This is the FastAPI service for FloodOps. Run it from this
 directory with:
 
 ```powershell
@@ -15,6 +15,12 @@ existing validated P6--P8 outputs when those products are available and return
 `503 product_unavailable` when they are not. They never run rainfall,
 hydraulic, inundation, or routing calculations. Interactive documentation is
 available at `/docs`.
+
+The frontend reads `VITE_API_URL` (see `frontend/.env.example`) and uses only
+the read-only P9 products for the operator replay. The core demo does not
+depend on live rainfall services. If generated P6--P8 products are absent,
+the API returns `503 product_unavailable` and the frontend shows an explicit
+unavailable state instead of substituting values.
 
 Key P9 endpoints are `/health`, `/api/status`, `/api/study-area`,
 `/api/flood/*`, `/api/roads/impact`, `POST /api/routes`, `/api/runs`, and

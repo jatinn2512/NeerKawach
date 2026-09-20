@@ -3,31 +3,27 @@ import { AlertTriangle, ArrowRight, Droplets, Waves } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MapSurface } from "@/components/MapSurface";
 import { Metric, Panel, RiskBadge, StatusPill } from "@/components/RiskUI";
-import { REGION } from "@/data/pilot";
 import { useSim } from "@/state/simulation";
 
 export function DashboardPage() {
   const sim = useSim();
   const m = sim.metrics;
 
-  const alerts = sim.roads
-    .filter((r) => r.risk === "high" || r.risk === "severe")
+  const alerts = (sim.roadImpact?.rows ?? [])
+    .filter((row) => row.affected === true || row.affected === "True" || row.affected === "true")
     .slice(0, 4)
-    .map((r) => ({
-      id: r.id,
-      title: r.name,
-      depth: r.depthCm,
-      risk: r.risk,
-      reason:
-        r.depthCm > 60
-          ? "Drainage capacity exceeded — rapid surface accumulation"
-          : "Runoff from upstream ward exceeding channel capacity",
+    .map((row) => ({
+      id: String(row.road_id),
+      title: String(row.road_id ?? "Unnamed road"),
+      depth: row.max_intersecting_depth_m == null ? null : Number(row.max_intersecting_depth_m) * 100,
+      risk: String(row.risk_class ?? "moderate") as "low" | "moderate" | "high" | "severe",
+      reason: "Validated P7 road-impact output",
     }));
 
   return (
     <AppShell
       title="Flood Management Control Center"
-      subtitle={`${REGION.area} · ${REGION.city} · ${REGION.region}`}
+      subtitle={sim.studyArea ? `${sim.studyArea.name} · ${sim.studyArea.city}, ${sim.studyArea.state}` : "Study area metadata unavailable"}
       actions={
         <RouteLink
           to="/simulation"
@@ -38,20 +34,20 @@ export function DashboardPage() {
       }
     >
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
-        <Metric label="Active simulation" value={sim.scenario.name} sub={`${sim.scenario.intensityMmHr} mm/hr · ${sim.scenario.durationHrs} h`} />
+        <Metric label="Validated replay" value={sim.selectedTimestamp ?? "Unavailable"} sub={sim.studyArea?.name ?? "Study area unavailable"} />
         <Metric
           label="Current flood risk"
-          value={m.overallRisk.toUpperCase()}
+          value={sim.summary ? m.overallRisk.toUpperCase() : "UNAVAILABLE"}
           tone={m.overallRisk}
-          sub={`Max depth ${m.maxDepthCm} cm`}
+          sub={sim.summary ? `Max depth ${m.maxDepthCm.toFixed(1)} cm` : "No validated flood product"}
         />
-        <Metric label="Affected zones" value={m.affectedZones} sub={`of ${sim.zones.length} configured wards`} />
-        <Metric label="High-risk roads" value={m.highRiskRoads} sub={`of ${sim.roads.length} monitored segments`} />
+        <Metric label="Affected area" value={sim.summary ? `${m.affectedAreaKm2.toFixed(3)} km²` : "Unavailable"} sub="Validated P7 metric" />
+        <Metric label="Affected roads" value={sim.roadImpact ? m.highRiskRoads : "Unavailable"} sub="Validated P7 road impacts" />
         <Metric label="Critical locations" value={m.criticalAtRisk} sub="Facilities with affected access" />
         <Metric
           label="Simulation status"
-          value={sim.status === "running" ? `${sim.progress}%` : `T+${m.clock}`}
-          sub={sim.status === "running" ? "Model executing" : "Results available"}
+          value={sim.dataStatus === "loading" ? "Loading" : sim.dataStatus === "ready" ? `T+${m.clock}` : "Unavailable"}
+          sub={sim.dataStatus === "ready" ? "Validated products available" : "Backend/product status"}
         />
       </div>
 
@@ -74,13 +70,13 @@ export function DashboardPage() {
         <Panel title="Simulation summary">
           <dl className="space-y-3 text-sm">
             {[
-              ["Selected area", `${REGION.area} · Ward 04`],
-              ["Rainfall intensity", `${sim.scenario.intensityMmHr} mm/hr (${sim.scenario.returnPeriod})`],
-              ["Storm duration", `${sim.scenario.durationHrs} hours`],
+              ["Selected area", sim.studyArea?.name ?? "Unavailable"],
+              ["Replay timestamp", sim.selectedTimestamp ?? "Unavailable"],
+              ["Data products", sim.apiStatus ? Object.entries(sim.apiStatus.available_data_products).filter(([, value]) => value).map(([key]) => key.toUpperCase()).join(", ") || "None" : "Unavailable"],
               ["Simulation start", m.startedAt],
               ["Current simulation time", `T+${m.clock}`],
-              ["Maximum predicted depth", `${m.maxDepthCm} cm`],
-              ["Affected area", `${m.affectedAreaKm2} km²`],
+              ["Maximum flood depth", sim.summary ? `${m.maxDepthCm.toFixed(1)} cm` : "Unavailable"],
+              ["Affected area", sim.summary ? `${m.affectedAreaKm2.toFixed(3)} km²` : "Unavailable"],
             ].map(([k, v]) => (
               <div key={k} className="flex items-start justify-between gap-4 border-b border-border/60 pb-2.5 last:border-0">
                 <dt className="text-muted-foreground">{k}</dt>
@@ -92,7 +88,7 @@ export function DashboardPage() {
             <span className="flex items-center gap-2 text-xs text-muted-foreground">
               <Droplets className="size-4 text-primary" /> Rainfall now
             </span>
-            <span className="text-sm font-semibold tabular">{m.rainfallNow} mm/hr</span>
+            <span className="text-sm font-semibold tabular">Not supplied by P9 flood products</span>
           </div>
         </Panel>
       </div>
