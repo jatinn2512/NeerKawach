@@ -8,7 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import drainage, flood, route, storms
+from app.api import drainage, flood, integration, route, storms
 from app.config import get_settings
 from app.schemas import HealthResponse
 
@@ -28,7 +28,7 @@ def create_app() -> FastAPI:
     application = FastAPI(
         title=settings.app_name,
         version="0.1.0",
-        description="Initial FloodOps API foundation with mock/sample outputs.",
+        description="FloodOps integration API. P9 endpoints serve only existing validated outputs.",
         lifespan=lifespan,
     )
     application.add_middleware(
@@ -66,6 +66,7 @@ def create_app() -> FastAPI:
     application.include_router(route.router)
     application.include_router(drainage.router)
     application.include_router(storms.router)
+    application.include_router(integration.router)
     return application
 
 
