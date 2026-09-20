@@ -77,6 +77,8 @@ def roads_impact(timestamp: str | None = None, road_id: str | None = None) -> di
 
 @router.post("/routes", summary="Route using the existing P8 implementation")
 def routes(request: RouteRequest) -> dict[str, Any]:
+    if not products.routing_available():
+        raise products.unavailable("P8 routing")
     products.require_timestamp(request.simulation_timestamp)
     return route_p8((request.origin_longitude, request.origin_latitude), (request.destination_longitude, request.destination_latitude), request.simulation_timestamp, request.routing_mode)
 

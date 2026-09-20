@@ -49,7 +49,8 @@ def test_health_and_study_area_do_not_leak_paths_or_secrets(client: TestClient) 
     assert area.json()["bbox"]["min_lat"] == 12.925
 
 
-def test_status_reports_unavailable_p8_without_claiming_a_capability(client: TestClient) -> None:
+def test_status_reports_unavailable_p8_without_claiming_a_capability(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(products, "routing_available", lambda: False)
     response = client.get("/api/status")
     assert response.status_code == 200
     body = response.json()
@@ -89,6 +90,7 @@ def test_routes_validate_request_and_delegate_to_p8(client: TestClient, monkeypa
         captured.append(str(args[-1]))
         return {"status": "ok", "routing_mode": args[-1], "route_timestamp": TIMESTAMP, "total_distance_m": 1.0, "route_cost": 1.0, "maximum_flood_depth_m": 0.0, "affected_segments": [], "avoided_flooded_segments": [], "geometry": {"type": "FeatureCollection", "features": []}, "source_phase": "P8"}
     monkeypatch.setattr(integration, "route_p8", fake_route)
+    monkeypatch.setattr(products, "routing_available", lambda: True)
     assert client.post("/api/routes", json=payload).status_code == 200
     payload["routing_mode"] = "flood-aware"
     assert client.post("/api/routes", json=payload).json()["routing_mode"] == "flood-aware"
@@ -99,7 +101,8 @@ def test_routes_validate_request_and_delegate_to_p8(client: TestClient, monkeypa
     assert client.post("/api/routes", json=payload).status_code == 404
 
 
-def test_route_reports_unavailable_when_locked_p8_inputs_are_absent(client: TestClient) -> None:
+def test_route_reports_unavailable_when_locked_p8_inputs_are_absent(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(products, "routing_available", lambda: False)
     response = client.post("/api/routes", json={"origin_latitude": 12.93, "origin_longitude": 77.66, "destination_latitude": 12.94, "destination_longitude": 77.67, "simulation_timestamp": TIMESTAMP, "routing_mode": "baseline"})
     assert response.status_code == 503
     assert response.json()["detail"]["error"] == "product_unavailable"
