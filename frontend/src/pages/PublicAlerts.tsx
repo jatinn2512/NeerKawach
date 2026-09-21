@@ -3,8 +3,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Panel, RiskBadge, StatusPill } from "@/components/RiskUI";
-import { RISK_LABEL } from "@/data/pilot";
 import { useSim } from "@/state/simulation";
+import { RISK_LABEL } from "@/data/pilot";
 
 const SENT = [
   { id: "ALT-2026-118", area: "Bellandur Ward", level: "High", issued: "Today, 09:20", status: "Sent" },
@@ -15,10 +15,10 @@ const SENT = [
 export function PublicAlertsPage() {
   const sim = useSim();
   const m = sim.metrics;
-  const [area, setArea] = useState(sim.zones[0]?.name ?? "");
+  const [area, setArea] = useState(sim.studyArea?.name ?? "");
   const [confirmed, setConfirmed] = useState(false);
   const [message, setMessage] = useState(
-    `Flood warning: water levels rising in low-lying areas. Avoid affected roads, do not attempt to cross flooded stretches, and follow instructions from local authorities. Simulated maximum depth ${m.maxDepthCm} cm.`,
+    "Flood warning: validated flood-product context is required before drafting a public message. Avoid affected roads and follow instructions from local authorities.",
   );
 
   return (
@@ -47,11 +47,7 @@ export function PublicAlertsPage() {
                 onChange={(e) => setArea(e.target.value)}
                 className="mt-1.5 w-full rounded-md border border-input bg-panel px-3 py-2 text-sm outline-none"
               >
-                {sim.zones.map((z) => (
-                  <option key={z.id} value={z.name}>
-                    {z.name} — {RISK_LABEL[z.risk]} risk
-                  </option>
-                ))}
+                <option value={sim.studyArea?.name ?? "Unavailable"}>{sim.studyArea?.name ?? "Unavailable"}</option>
               </select>
             </label>
 
@@ -85,7 +81,7 @@ export function PublicAlertsPage() {
             </label>
 
             <button
-              disabled={!confirmed || message.trim().length < 20}
+              disabled={!confirmed || message.trim().length < 20 || !sim.summary}
               onClick={() =>
                 toast.success("Alert queued for dispatch", {
                   description: `${area} · ${RISK_LABEL[m.overallRisk]} risk warning (prototype — not transmitted).`,
@@ -101,11 +97,11 @@ export function PublicAlertsPage() {
         <Panel title="Context from active simulation">
           <dl className="space-y-2 text-sm">
             {[
-              ["Scenario", sim.scenario.name],
-              ["Simulation time", `T+${m.clock}`],
-              ["Max depth", `${m.maxDepthCm} cm`],
-              ["Affected zones", `${m.affectedZones}`],
-              ["High-risk roads", `${m.highRiskRoads}`],
+              ["Replay timestamp", sim.selectedTimestamp ?? "Unavailable"],
+              ["Simulation time", m.clock],
+              ["Max depth", sim.summary ? `${m.maxDepthCm.toFixed(1)} cm` : "Unavailable"],
+              ["Affected area", sim.summary ? `${m.affectedAreaKm2.toFixed(3)} km²` : "Unavailable"],
+              ["Affected roads", sim.roadImpact ? `${m.highRiskRoads}` : "Unavailable"],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-3 border-b border-border/60 pb-1.5 last:border-0">
                 <dt className="text-muted-foreground">{k}</dt>
@@ -114,7 +110,7 @@ export function PublicAlertsPage() {
             ))}
           </dl>
           <div className="mt-3">
-            <RiskBadge risk={m.overallRisk} />
+            {sim.summary ? <RiskBadge risk={m.overallRisk} /> : <StatusPill status="Unavailable" />}
           </div>
         </Panel>
       </div>
@@ -131,7 +127,7 @@ export function PublicAlertsPage() {
             </tr>
           </thead>
           <tbody>
-            {SENT.map((a) => (
+            {([] as typeof SENT).map((a) => (
               <tr key={a.id} className="border-b border-border/60 last:border-0">
                 <td className="px-4 py-2.5 font-medium tabular">{a.id}</td>
                 <td className="px-4 py-2.5 text-muted-foreground">{a.area}</td>

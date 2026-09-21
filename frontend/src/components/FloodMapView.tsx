@@ -6,8 +6,9 @@ import {
   Polyline,
   CircleMarker,
   Tooltip,
+  GeoJSON,
 } from "react-leaflet";
-import { REGION, RISK_COLOR } from "@/data/pilot";
+import { RISK_COLOR } from "@/data/pilot";
 import { useSim } from "@/state/simulation";
 
 export type { MapLayers } from "./map-layers";
@@ -29,11 +30,17 @@ export default function FloodMapView({
   zoom?: number | undefined;
 }) {
   const sim = useSim();
+  const center: [number, number] = sim.studyArea
+    ? [
+        (sim.studyArea.bbox.min_lat + sim.studyArea.bbox.max_lat) / 2,
+        (sim.studyArea.bbox.min_lon + sim.studyArea.bbox.max_lon) / 2,
+      ]
+    : [0, 0];
 
   return (
     <MapContainer
-      center={REGION.center}
-      zoom={zoom ?? REGION.zoom}
+      center={center}
+      zoom={zoom ?? (sim.studyArea ? 13 : 2)}
       scrollWheelZoom={interactive}
       dragging={interactive}
       zoomControl={interactive}
@@ -45,6 +52,10 @@ export default function FloodMapView({
         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         attribution='&copy; OpenStreetMap &copy; CARTO — pilot basemap'
       />
+
+      {sim.extent ? <GeoJSON data={sim.extent as never} /> : null}
+      {sim.routeResults.floodAware?.geometry ? <GeoJSON data={sim.routeResults.floodAware.geometry as never} pathOptions={{ color: "#22d3ee", weight: 5 }} /> : null}
+      {sim.routeResults.baseline?.geometry ? <GeoJSON data={sim.routeResults.baseline.geometry as never} pathOptions={{ color: "#f87171", weight: 3, dashArray: "8 6" }} /> : null}
 
       {layers.floodRisk &&
         sim.zones.map((z) => (

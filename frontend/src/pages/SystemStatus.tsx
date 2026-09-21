@@ -1,15 +1,22 @@
 import { AppShell } from "@/components/AppShell";
 import { Metric, Panel, StatusPill } from "@/components/RiskUI";
-import { SIM_HISTORY, SYSTEM_SERVICES } from "@/data/pilot";
+import { useSim } from "@/state/simulation";
 
 export function SystemStatusPage() {
+  const sim = useSim();
+  const services = [
+    { name: "Application API", status: sim.health ? "Operational" : sim.dataStatus === "loading" ? "Processing" : "Unavailable", detail: sim.health?.message ?? "No health response" },
+    { name: "P6 coupled products", status: sim.apiStatus?.available_data_products.p6 ? "Available" : "Unavailable", detail: "Validated product availability from /api/status" },
+    { name: "P7 flood products", status: sim.apiStatus?.available_data_products.p7 ? "Available" : "Unavailable", detail: "Summary, extent, time series and road impact" },
+    { name: "P8 routing", status: sim.apiStatus?.available_data_products.p8 ? "Available" : "Unavailable", detail: sim.apiStatus?.routing_capability ?? "No routing status" },
+  ];
   return (
     <AppShell title="System Status" subtitle="Platform health and recent activity">
       <div className="grid gap-3 md:grid-cols-4">
-        <Metric label="Platform state" value="Operational" tone="low" />
-        <Metric label="Rainfall data age" value="4 min" />
-        <Metric label="Runs (last 24h)" value={SIM_HISTORY.length} />
-        <Metric label="Avg. run time" value="2.4 s" />
+        <Metric label="Platform state" value={sim.health ? "Operational" : sim.dataStatus === "loading" ? "Loading" : "Unavailable"} tone={sim.health ? "low" : "neutral"} />
+        <Metric label="Rainfall catalog" value={sim.rainfallSources.length ? "Available" : "Unavailable"} />
+        <Metric label="Validated runs" value={sim.runs.length} />
+        <Metric label="API environment" value={sim.health?.environment ?? "Unavailable"} />
       </div>
 
       <Panel title="Services" bodyClassName="p-0">
@@ -22,7 +29,7 @@ export function SystemStatusPage() {
             </tr>
           </thead>
           <tbody>
-            {SYSTEM_SERVICES.map((s) => (
+            {services.map((s) => (
               <tr key={s.name} className="border-b border-border/60 last:border-0">
                 <td className="px-4 py-2.5 font-medium">{s.name}</td>
                 <td className="px-4 py-2.5">
@@ -48,15 +55,15 @@ export function SystemStatusPage() {
             </tr>
           </thead>
           <tbody>
-            {SIM_HISTORY.map((r) => (
-              <tr key={r.id} className="border-b border-border/60 last:border-0">
-                <td className="px-4 py-2.5 font-medium tabular">{r.id}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">{r.scenario}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">{r.operator}</td>
-                <td className="px-4 py-2.5 text-muted-foreground tabular">{r.started}</td>
-                <td className="px-4 py-2.5 tabular">{r.duration}</td>
+            {sim.runs.map((r, index) => (
+              <tr key={`${r.phase}-${index}`} className="border-b border-border/60 last:border-0">
+                <td className="px-4 py-2.5 font-medium tabular">{`${r.phase}-${index + 1}`}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">{r.product}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">FloodOps API</td>
+                <td className="px-4 py-2.5 text-muted-foreground tabular">{r.generated_at_utc ?? "—"}</td>
+                <td className="px-4 py-2.5 tabular">{r.timestamps.length} timestamp(s)</td>
                 <td className="px-4 py-2.5">
-                  <StatusPill status={r.status} />
+                  <StatusPill status="Available" />
                 </td>
               </tr>
             ))}

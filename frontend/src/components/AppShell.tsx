@@ -15,7 +15,6 @@ import {
   Waves,
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
-import { REGION } from "@/data/pilot";
 import { useSim } from "@/state/simulation";
 import { cn } from "@/lib/utils";
 import { RiskBadge } from "./RiskUI";
@@ -130,7 +129,7 @@ export function AppShell({
           <div>
             <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
             <p className="text-xs text-muted-foreground">
-              {subtitle ?? `${REGION.area} · ${REGION.city}`}
+              {subtitle ?? (sim.studyArea ? `${sim.studyArea.name} · ${sim.studyArea.city}` : "Study area metadata unavailable")}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -142,10 +141,10 @@ export function AppShell({
                   Live risk
                 </p>
                 <p className="text-xs font-medium tabular">
-                  T+{sim.metrics.clock} · max {sim.metrics.maxDepthCm} cm
+                  {sim.summary ? `T+${sim.metrics.clock} · max ${sim.metrics.maxDepthCm.toFixed(1)} cm` : "Validated flood data unavailable"}
                 </p>
               </div>
-              <RiskBadge risk={sim.metrics.overallRisk} />
+              {sim.summary ? <RiskBadge risk={sim.metrics.overallRisk} /> : <span className="text-[11px] text-muted-foreground">UNAVAILABLE</span>}
             </div>
           </div>
         </header>

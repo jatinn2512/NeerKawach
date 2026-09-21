@@ -1,7 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Metric, Panel, RiskBadge } from "@/components/RiskUI";
-import { RISK_LABEL } from "@/data/pilot";
 import { useSim } from "@/state/simulation";
 
 const ACTIONS: Record<string, string> = {
@@ -14,9 +13,7 @@ const ACTIONS: Record<string, string> = {
 export function RiskPage() {
   const sim = useSim();
   const m = sim.metrics;
-  const flagged = sim.roads
-    .filter((r) => r.risk !== "low")
-    .sort((a, b) => b.depthCm - a.depthCm);
+  const flagged = (sim.roadImpact?.rows ?? []).filter((row) => row.affected === true || row.affected === "True" || row.affected === "true");
 
   return (
     <AppShell title="Risk & Alerts" subtitle="Operator decision support — not a public notification channel">
@@ -26,33 +23,33 @@ export function RiskPage() {
             Current overall assessment
           </p>
           <p className="mt-1 text-2xl font-semibold">
-            {RISK_LABEL[m.overallRisk].toUpperCase()} FLOOD RISK
+            {(m.overallRisk ?? "unavailable").toUpperCase()} FLOOD RISK
           </p>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {sim.scenario.name} · {sim.scenario.intensityMmHr} mm/hr · simulation time T+{m.clock}
+            {sim.selectedTimestamp ?? "No validated timestamp selected"} · simulation time {m.clock}
           </p>
         </div>
         <div className="flex gap-8 text-center">
           <div>
-            <p className="text-2xl font-semibold tabular">{m.affectedZones}</p>
+            <p className="text-2xl font-semibold tabular">{sim.dataStatus === "ready" ? m.affectedZones : "—"}</p>
             <p className="text-xs text-muted-foreground">affected zones</p>
           </div>
           <div>
-            <p className="text-2xl font-semibold tabular">{m.highRiskRoads}</p>
+            <p className="text-2xl font-semibold tabular">{sim.dataStatus === "ready" ? m.highRiskRoads : "—"}</p>
             <p className="text-xs text-muted-foreground">high-risk roads</p>
           </div>
           <div>
-            <p className="text-2xl font-semibold tabular">{m.criticalAtRisk}</p>
+            <p className="text-2xl font-semibold tabular">{sim.dataStatus === "ready" ? m.criticalAtRisk : "—"}</p>
             <p className="text-xs text-muted-foreground">critical locations</p>
           </div>
         </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
-        <Metric label="Max flood depth" value={`${m.maxDepthCm} cm`} tone={m.overallRisk} />
-        <Metric label="Affected area" value={`${m.affectedAreaKm2} km²`} />
-        <Metric label="Severe-risk zones" value={sim.zones.filter((z) => z.risk === "severe").length} tone="severe" />
-        <Metric label="High-risk zones" value={sim.zones.filter((z) => z.risk === "high").length} tone="high" />
+        <Metric label="Max flood depth" value={sim.summary ? `${m.maxDepthCm.toFixed(1)} cm` : "Unavailable"} tone={m.overallRisk ?? "neutral"} />
+        <Metric label="Affected area" value={sim.summary ? `${m.affectedAreaKm2.toFixed(3)} km²` : "Unavailable"} />
+        <Metric label="Road impacts" value={sim.roadImpact ? flagged.length : "Unavailable"} tone="high" />
+        <Metric label="Validated timestamp" value={sim.selectedTimestamp ?? "Unavailable"} />
       </div>
 
       <Panel title="Critical alerts & recommended actions">
@@ -63,27 +60,25 @@ export function RiskPage() {
             </li>
           ) : (
             flagged.map((r) => (
-              <li key={r.id} className="rounded-md border border-border bg-panel p-3.5">
+              <li key={String(r.road_id)} className="rounded-md border border-border bg-panel p-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="flex items-center gap-2 text-sm font-semibold">
-                    <AlertTriangle className="size-4 text-risk-high" /> {r.name}
+                    <AlertTriangle className="size-4 text-risk-high" /> {String(r.road_id ?? "Unnamed road")}
                   </p>
-                  <RiskBadge risk={r.risk} />
+                  <span className="text-xs font-semibold uppercase text-risk-high">{String(r.risk_class ?? "affected")}</span>
                 </div>
                 <div className="mt-2 grid gap-2 text-xs md:grid-cols-3">
                   <p>
                     <span className="text-muted-foreground">Flood depth: </span>
-                    <span className="font-medium tabular">{r.depthCm} cm</span>
+                    <span className="font-medium tabular">{r.max_intersecting_depth_m == null ? "Unavailable" : `${Number(r.max_intersecting_depth_m) * 100} cm`}</span>
                   </p>
                   <p>
                     <span className="text-muted-foreground">Reason: </span>
-                    {r.depthCm > 50
-                      ? "Drainage capacity exceeded"
-                      : "Upstream runoff accumulation"}
+                    Validated road-impact output
                   </p>
                   <p>
                     <span className="text-muted-foreground">Recommended action: </span>
-                    {ACTIONS[r.risk]}
+                    {ACTIONS[String(r.risk_class ?? "moderate")] ?? "Review validated road-impact output"}
                   </p>
                 </div>
               </li>

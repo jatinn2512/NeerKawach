@@ -1,16 +1,23 @@
 import { AppShell } from "@/components/AppShell";
 import { Panel, StatusPill } from "@/components/RiskUI";
-import { DATASETS, REGION } from "@/data/pilot";
+import { useSim } from "@/state/simulation";
 
 export function DataLayersPage() {
+  const sim = useSim();
+  const datasets = [
+    { name: "P6 coupled outputs", available: sim.apiStatus?.available_data_products.p6 === true },
+    { name: "P7 flood summary / extent / time series", available: sim.apiStatus?.available_data_products.p7 === true },
+    { name: "P8 flood-safe routing", available: sim.apiStatus?.available_data_products.p8 === true },
+    { name: "Rainfall source catalog", available: sim.rainfallSources.length > 0 },
+  ];
   return (
     <AppShell title="Data & Layers" subtitle="Geospatial and environmental inputs to the simulation engine">
       <Panel title="Configured coverage">
         <div className="grid gap-4 text-sm md:grid-cols-4">
-          <Item label="Region" value={REGION.region} />
-          <Item label="Catchment" value={REGION.area} />
-          <Item label="Coverage" value={`${REGION.coverageKm2} km²`} />
-          <Item label="Reference system" value={REGION.crs} />
+          <Item label="Region" value={sim.studyArea?.city ?? "Unavailable"} />
+          <Item label="Catchment" value={sim.studyArea?.name ?? "Unavailable"} />
+          <Item label="Coverage" value={sim.studyArea ? `${sim.studyArea.approximate_area_km2} km²` : "Unavailable"} />
+          <Item label="Reference system" value={sim.studyArea?.crs ?? "Unavailable"} />
         </div>
       </Panel>
 
@@ -27,16 +34,16 @@ export function DataLayersPage() {
             </tr>
           </thead>
           <tbody>
-            {DATASETS.map((d) => (
+            {datasets.map((d) => (
               <tr key={d.name} className="border-b border-border/60 last:border-0">
                 <td className="px-4 py-2.5 font-medium">{d.name}</td>
                 <td className="px-4 py-2.5">
-                  <StatusPill status={d.status} />
+                  <StatusPill status={d.available ? "Available" : "Unavailable"} />
                 </td>
-                <td className="px-4 py-2.5 text-muted-foreground">{d.coverage}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">{d.source}</td>
-                <td className="px-4 py-2.5 tabular">{d.size}</td>
-                <td className="px-4 py-2.5 text-muted-foreground tabular">{d.updated}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">{d.available ? "Published by backend" : "Not available"}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">P9 API</td>
+                <td className="px-4 py-2.5 tabular">—</td>
+                <td className="px-4 py-2.5 text-muted-foreground tabular">Backend metadata</td>
               </tr>
             ))}
           </tbody>
