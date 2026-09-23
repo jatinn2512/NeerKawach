@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.config import get_settings
 from app.services import products
+from app.services import rainfall
 from app.services.routing import route as route_p8
 
 
@@ -91,3 +92,28 @@ def runs() -> dict[str, Any]:
 @router.get("/rainfall/sources", summary="Stored rainfall-source metadata; no live requests")
 def rainfall_sources() -> dict[str, Any]:
     return {"sources": products.rainfall_sources()}
+
+
+@router.get("/rainfall/status", summary="Rainfall provider availability and fallback status")
+def rainfall_status(source_id: str | None = None, mode: str = "historical") -> dict[str, Any]:
+    return rainfall.status(mode=mode, requested_source=source_id)
+
+
+@router.get("/rainfall/metadata", summary="Registered rainfall source metadata")
+def rainfall_metadata(source_id: str | None = None) -> dict[str, Any]:
+    return rainfall.metadata(source_id)
+
+
+@router.get("/rainfall/timeseries", summary="Stored normalized rainfall records")
+def rainfall_timeseries(source_id: str | None = None, start_utc: str | None = None, end_utc: str | None = None, mode: str = "historical") -> dict[str, Any]:
+    return rainfall.timeseries(source_id, start_utc, end_utc, mode)
+
+
+@router.get("/rainfall/current", summary="Current stored rainfall availability")
+def rainfall_current() -> dict[str, Any]:
+    return rainfall.current_status()
+
+
+@router.get("/nowcast/status", summary="Quantitative nowcast availability")
+def nowcast_status() -> dict[str, Any]:
+    return rainfall.nowcast_status()

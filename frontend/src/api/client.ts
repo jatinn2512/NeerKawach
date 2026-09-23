@@ -54,6 +54,18 @@ export type RoadImpact = {
   rows: Array<Record<string, string | number | boolean | null>>;
 };
 export type RainfallSources = { sources: Array<Record<string, unknown>> };
+export type RainfallStatus = {
+  mode?: string;
+  source_requested?: string;
+  source_used: string | null;
+  source_name?: string | null;
+  source_role?: string | null;
+  fallback: boolean;
+  fallback_reason: string | null;
+  quantitative_priority: string[];
+  sources: Array<{ source_id: string; status: string; available: boolean; usable?: boolean; product?: string; role?: string; reason?: string }>;
+};
+export type NowcastStatus = { available: boolean; mode: string; source: string | null; future_radar_nowcast: boolean; message: string };
 export type RouteRequest = {
   origin_latitude: number; origin_longitude: number;
   destination_latitude: number; destination_longitude: number;
@@ -77,4 +89,7 @@ export const floodApi = {
   routes: (request: RouteRequest) => apiRequest<RouteResponse>("/api/routes", { method: "POST", body: JSON.stringify(request) }),
   runs: () => apiRequest<{ runs: RunRecord[] }>("/api/runs"),
   rainfallSources: () => apiRequest<RainfallSources>("/api/rainfall/sources"),
+  rainfallStatus: () => apiRequest<RainfallStatus>("/api/rainfall/status"),
+  rainfallCurrent: () => apiRequest<RainfallStatus>("/api/rainfall/current"),
+  nowcastStatus: () => apiRequest<NowcastStatus>("/api/nowcast/status"),
 };

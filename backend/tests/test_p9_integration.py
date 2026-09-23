@@ -115,3 +115,47 @@ def test_rainfall_metadata_and_run_discovery(client: TestClient) -> None:
     assert sources["open_meteo_precipitation_forecast"]["source_type"] == "numerical_weather_model_forecast"
     assert sources["rainviewer_radar_observations"]["source_type"] == "radar_observation_timeline"
     assert client.get("/api/runs").json() == {"runs": [{"phase": "P7", "product": "flood inundation and road impact", "timestamps": [TIMESTAMP], "generated_at_utc": TIMESTAMP}]}
+
+
+def test_rainfall_status_and_nowcast_do_not_claim_unavailable_sources(client: TestClient) -> None:
+    status = client.get("/api/rainfall/status")
+    assert status.status_code == 200
+    body = status.json()
+    assert body["source_used"] == "mosdac_insat3dr"
+    assert body["source_requested"] == "auto"
+    assert body["fallback"] is False
+    assert any(item["source_id"] == "mosdac_insat3dr" and item["usable"] is True for item in body["sources"])
+    assert any(item["source_id"] == "dwr_qpe" and item["available"] is False for item in body["sources"])
+    nowcast = client.get("/api/nowcast/status")
+    assert nowcast.status_code == 200
+    assert nowcast.json()["future_radar_nowcast"] is False
+
+
+def test_rainfall_status_reports_explicit_dwr_substitution(client: TestClient) -> None:
+    response = client.get("/api/rainfall/status", params={"source_id": "dwr_qpe"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["source_requested"] == "dwr_qpe"
+    assert body["source_used"] == "mosdac_insat3dr"
+    assert body["fallback"] is True
+
+
+def test_current_rainfall_is_labeled_model_forecast(client: TestClient) -> None:
+    response = client.get("/api/rainfall/current")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["source_used"] == "open_meteo_precipitation_forecast"
+    assert body["source_role"] == "model_forecast"
+    assert "Open-Meteo" in body["source_name"]
+    assert body["fallback"] is False
+
+
+def test_historical_mosdac_timeseries_is_real_normalized_product(client: TestClient) -> None:
+    response = client.get("/api/rainfall/timeseries", params={"source_id": "mosdac_insat3dr", "start_utc": "2022-08-30T00:00:00Z", "end_utc": "2022-08-30T23:59:59Z"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["source"] == "mosdac_insat3dr"
+    assert body["source_product"] == "3RIMG_L2B_IMC"
+    assert body["records"]
+    assert all(record["is_observed"] is True and record["is_forecast"] is False for record in body["records"])
+    assert all(record["source_product"] == "3RIMG_L2B_IMC" for record in body["records"])
