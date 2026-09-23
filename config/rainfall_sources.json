@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "default_quantitative_priority": [
+    "dwr_qpe",
+    "mosdac_insat3dr",
+    "arg_aws",
+    "imerg",
+    "open_meteo_precipitation_forecast"
+  ],
+  "current_forecast_priority": [
+    "dwr_qpe",
+    "arg_aws",
+    "imerg",
+    "open_meteo_precipitation_forecast"
+  ],
+  "sources": {
+    "dwr_qpe": {
+      "name": "IMD Doppler Weather Radar quantitative precipitation estimate",
+      "provider": "India Meteorological Department",
+      "role": "radar_observed_quantitative",
+      "status": "reserved",
+      "enabled": false,
+      "capabilities": ["historical", "current", "qpe"],
+      "raw_directory": "data/rainfall/raw/dwr",
+      "notes": "No anonymous Bellandur historical DWR download has been verified. This provider must remain unavailable until authorized access is obtained."
+    },
+    "mosdac_insat3dr": {
+      "name": "MOSDAC INSAT-3DR 3RIMG_L2B_IMC",
+      "provider": "MOSDAC / ISRO",
+      "role": "satellite_observed_historical",
+      "status": "available",
+      "enabled": true,
+      "capabilities": ["historical"],
+      "raw_directory": "data/rainfall/raw/mosdac",
+      "processed_directory": "data/rainfall/processed/mosdac",
+      "product": "3RIMG_L2B_IMC",
+      "raw_file_pattern": "3RIMG_L2B_IMC/*.tif",
+      "processed_file_pattern": "mosdac_bellandur.csv",
+      "metadata_file": "data/rainfall/metadata/mosdac_bellandur.json",
+      "expected_file_count": 341,
+      "historical_coverage_start_utc": "2022-08-30T00:15:00Z",
+      "historical_coverage_end_utc": "2022-09-07T23:45:00Z",
+      "native_resolution_m": 4000,
+      "temporal_resolution_minutes": 30,
+      "value_units": "mm_per_hour",
+      "aoi_processing": "pixel-footprint intersection with canonical Bellandur bbox",
+      "documentation_url": "https://mosdac.gov.in/docs/INSAT_3D_ATBD_MAY_2015.pdf",
+      "formats": ["HDF5", "GeoTIFF"],
+      "notes": "Validated local historical GeoTIFF set; raw files remain untouched and normalized output is P3-compatible CSV."
+    },
+    "arg_aws": {
+      "name": "IMD automatic rain gauge / automatic weather station observations",
+      "provider": "India Meteorological Department",
+      "role": "station_observed",
+      "status": "configured",
+      "enabled": true,
+      "capabilities": ["historical", "current"],
+      "raw_directory": "data/rainfall/raw/arg",
+      "processed_directory": "data/rainfall/processed/arg",
+      "notes": "Point observations are retained as stations; they are never expanded into a synthetic grid."
+    },
+    "imd_dsp": {
+      "name": "IMD DSP historical rainfall file",
+      "provider": "India Meteorological Department",
+      "role": "historical_observed",
+      "status": "configured",
+      "enabled": true,
+      "capabilities": ["historical"],
+      "raw_directory": "data/rainfall/raw/imd_dsp",
+      "processed_directory": "data/rainfall/processed/imd_dsp",
+      "notes": "Historical-file adapter only; it is not represented as a real-time API."
+    },
+    "imd_ncmrwf_gpm_merged_daily": {
+      "name": "IMD/NCMRWF daily merged satellite-gauge rainfall",
+      "provider": "IMD/NCMRWF",
+      "role": "historical_observed_merged",
+      "status": "available",
+      "enabled": true,
+      "capabilities": ["historical"],
+      "raw_directory": "data/rainfall/raw/imd",
+      "processed_directory": "data/rainfall/processed",
+      "file_patterns": ["imd_gpm_*.csv"],
+      "processed_file_pattern": "imd_gpm_*.csv",
+      "historical_coverage_start_utc": "2026-09-17T00:00:00Z",
+      "historical_coverage_end_utc": "2026-09-17T23:59:59Z",
+      "notes": "Existing P1 baseline. Its daily grid is retained at its native resolution."
+    },
+    "imerg": {
+      "name": "NASA GPM IMERG",
+      "provider": "NASA GPM",
+      "role": "satellite_estimate",
+      "status": "configured",
+      "enabled": true,
+      "capabilities": ["historical", "current"],
+      "raw_directory": "data/rainfall/raw/gpm",
+      "processed_directory": "data/rainfall/processed/gpm",
+      "formats": ["HDF5", "GeoTIFF", "NetCDF"],
+      "notes": "Earthdata access is required for the configured historical products; no download is fabricated."
+    },
+    "open_meteo_precipitation_forecast": {
+      "name": "Open-Meteo precipitation forecast",
+      "provider": "Open-Meteo",
+      "role": "model_forecast",
+      "status": "available",
+      "enabled": true,
+      "capabilities": ["current", "forecast"],
+      "historical_available": false,
+      "raw_directory": "data/rainfall/raw/open_meteo",
+      "processed_directory": "data/rainfall/processed",
+      "file_patterns": ["open_meteo_*.csv"],
+      "notes": "Model precipitation, not radar or DWR. Existing adapter is the public no-login fallback."
+    },
+    "rainviewer_radar_observations": {
+      "name": "RainViewer radar observations",
+      "provider": "RainViewer",
+      "role": "radar_observation_visualization",
+      "status": "available",
+      "enabled": true,
+      "capabilities": ["recent_observation"],
+      "historical_available": false,
+      "raw_directory": "data/rainfall/raw/rainviewer",
+      "quantitative": false,
+      "future_nowcast": false,
+      "notes": "Recent/past radar timeline and imagery references only; not part of quantitative rainfall priority."
+    }
+  }
+}

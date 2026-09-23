@@ -24,7 +24,7 @@ import {
   type Scenario,
   type Zone,
 } from "@/data/pilot";
-import { floodApi, type ApiStatus, type FloodSummary, type GeoJson, type HealthResponse, type RainfallSources, type RoadImpact, type RouteResponse, type RunRecord, type StudyArea } from "@/api/client";
+import { floodApi, type ApiStatus, type FloodSummary, type GeoJson, type HealthResponse, type RainfallSources, type RainfallStatus, type RoadImpact, type RouteResponse, type RunRecord, type StudyArea } from "@/api/client";
 
 export type SimStatus = "idle" | "running" | "complete";
 
@@ -98,6 +98,8 @@ type SimContextValue = {
   roadImpact: RoadImpact | null;
   runs: RunRecord[];
   rainfallSources: RainfallSources["sources"];
+  rainfallStatus: RainfallStatus | null;
+  rainfallCurrentStatus: RainfallStatus | null;
   dataStatus: "loading" | "ready" | "unavailable" | "error";
   dataError: string | null;
   reload: () => void;
@@ -146,6 +148,8 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   const [roadImpact, setRoadImpact] = useState<RoadImpact | null>(null);
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [rainfallSources, setRainfallSources] = useState<RainfallSources["sources"]>([]);
+  const [rainfallStatus, setRainfallStatus] = useState<RainfallStatus | null>(null);
+  const [rainfallCurrentStatus, setRainfallCurrentStatus] = useState<RainfallStatus | null>(null);
   const [timestamps, setTimestamps] = useState<string[]>([]);
   const [timeseriesRows, setTimeseriesRows] = useState<Array<Record<string, string | number | boolean | null>>>([]);
   const [selectedTimestamp, setSelectedTimestamp] = useState<string | null>(null);
@@ -162,10 +166,10 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
     setDataError(null);
     void Promise.allSettled([
       floodApi.health(), floodApi.status(), floodApi.studyArea(), floodApi.floodSummary(), floodApi.maxDepth(),
-      floodApi.floodTimeseries(), floodApi.floodExtent(), floodApi.roadImpact(), floodApi.runs(), floodApi.rainfallSources(),
+      floodApi.floodTimeseries(), floodApi.floodExtent(), floodApi.roadImpact(), floodApi.runs(), floodApi.rainfallSources(), floodApi.rainfallStatus(), floodApi.rainfallCurrent(),
     ]).then((results) => {
       if (cancelled) return;
-      const [healthResult, statusResult, areaResult, summaryResult, maxDepthResult, timeseriesResult, extentResult, roadsResult, runsResult, rainfallResult] = results;
+      const [healthResult, statusResult, areaResult, summaryResult, maxDepthResult, timeseriesResult, extentResult, roadsResult, runsResult, rainfallResult, rainfallStatusResult, rainfallCurrentResult] = results;
       if (healthResult.status === "fulfilled") setHealth(healthResult.value);
       if (statusResult.status === "fulfilled") setApiStatus(statusResult.value);
       if (areaResult.status === "fulfilled") setStudyArea(areaResult.value);
@@ -179,6 +183,8 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       if (roadsResult.status === "fulfilled") setRoadImpact(roadsResult.value);
       if (runsResult.status === "fulfilled") setRuns(runsResult.value.runs);
       if (rainfallResult.status === "fulfilled") setRainfallSources(rainfallResult.value.sources);
+      if (rainfallStatusResult.status === "fulfilled") setRainfallStatus(rainfallStatusResult.value);
+      if (rainfallCurrentResult.status === "fulfilled") setRainfallCurrentStatus(rainfallCurrentResult.value);
       const requiredFailed = [healthResult, statusResult, areaResult].some((result) => result.status === "rejected");
       const productsUnavailable = [summaryResult, maxDepthResult, timeseriesResult, extentResult, roadsResult].some((result) => result.status === "rejected" && result.reason?.status === 503);
       if (requiredFailed) { setDataStatus("error"); setDataError("The FloodOps API could not be reached. Check the backend URL and retry."); }
@@ -353,6 +359,8 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
     roadImpact,
     runs,
     rainfallSources,
+    rainfallStatus,
+    rainfallCurrentStatus,
     dataStatus,
     dataError,
     reload: () => setReloadKey((value) => value + 1),

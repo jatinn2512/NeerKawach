@@ -4,17 +4,23 @@ import { useSim } from "@/state/simulation";
 
 export function SystemStatusPage() {
   const sim = useSim();
+  const selectedRainfall = sim.rainfallStatus?.sources.find((source) => source.source_id === sim.rainfallStatus?.source_used);
+  const currentRainfall = sim.rainfallCurrentStatus;
+  const currentRainfallLabel = currentRainfall?.source_name ?? currentRainfall?.source_used ?? "Unavailable";
   const services = [
     { name: "Application API", status: sim.health ? "Operational" : sim.dataStatus === "loading" ? "Processing" : "Unavailable", detail: sim.health?.message ?? "No health response" },
     { name: "P6 coupled products", status: sim.apiStatus?.available_data_products.p6 ? "Available" : "Unavailable", detail: "Validated product availability from /api/status" },
     { name: "P7 flood products", status: sim.apiStatus?.available_data_products.p7 ? "Available" : "Unavailable", detail: "Summary, extent, time series and road impact" },
     { name: "P8 routing", status: sim.apiStatus?.available_data_products.p8 ? "Available" : "Unavailable", detail: sim.apiStatus?.routing_capability ?? "No routing status" },
+    { name: "Quantitative rainfall", status: sim.rainfallStatus?.source_used ? "Available" : "Unavailable", detail: selectedRainfall?.product ?? sim.rainfallStatus?.source_used ?? sim.rainfallStatus?.fallback_reason ?? "No rainfall source status" },
+    { name: "Current/forecast rainfall", status: currentRainfall?.source_used ? "Available" : "Unavailable", detail: currentRainfall?.source_role === "model_forecast" ? `${currentRainfallLabel} (model-based forecast; not radar/DWR)` : currentRainfallLabel },
   ];
   return (
     <AppShell title="System Status" subtitle="Platform health and recent activity">
       <div className="grid gap-3 md:grid-cols-4">
         <Metric label="Platform state" value={sim.health ? "Operational" : sim.dataStatus === "loading" ? "Loading" : "Unavailable"} tone={sim.health ? "low" : "neutral"} />
-        <Metric label="Rainfall catalog" value={sim.rainfallSources.length ? "Available" : "Unavailable"} />
+        <Metric label="Historical rainfall" value={selectedRainfall?.product ?? sim.rainfallStatus?.source_used ?? "Unavailable"} />
+        <Metric label="Current/forecast rainfall" value={currentRainfall?.source_role === "model_forecast" ? `${currentRainfallLabel} · model` : currentRainfallLabel} />
         <Metric label="Validated runs" value={sim.runs.length} />
         <Metric label="API environment" value={sim.health?.environment ?? "Unavailable"} />
       </div>

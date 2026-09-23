@@ -8,17 +8,11 @@ build/
 *.tsbuildinfo
 
 # Environment and local configuration
-.env
-.env.*
-!.env.example
-frontend/.env
-frontend/.env.*
-!frontend/.env.example
+**/.env
+**/.env.*
+!**/.env.example
 frontend/.cache/
 frontend/.parcel-cache/
-backend/.env
-backend/.env.*
-!backend/.env.example
 
 # Python caches and local environments
 __pycache__/
@@ -56,15 +50,53 @@ data/dem/*
 !data/dem/.gitkeep
 data/drainage/*
 !data/drainage/.gitkeep
+!data/drainage/hydraulics/
+data/drainage/hydraulics/*
+!data/drainage/hydraulics/README.md
 data/rainfall/*
 !data/rainfall/.gitkeep
 !data/rainfall/metadata/
 data/rainfall/metadata/*
 !data/rainfall/metadata/source_catalog.json
+!data/rainfall/metadata/mosdac_bellandur.json
+!data/rainfall/raw/
+data/rainfall/raw/*
+!data/rainfall/raw/dwr/
+data/rainfall/raw/dwr/*
+!data/rainfall/raw/dwr/README.md
+!data/rainfall/raw/mosdac/
+data/rainfall/raw/mosdac/*
+!data/rainfall/raw/mosdac/README.md
+!data/rainfall/raw/gpm/
+data/rainfall/raw/gpm/*
+!data/rainfall/raw/gpm/README.md
+!data/rainfall/raw/arg/
+data/rainfall/raw/arg/*
+!data/rainfall/raw/arg/README.md
+!data/rainfall/raw/imd_dsp/
+data/rainfall/raw/imd_dsp/*
+!data/rainfall/raw/imd_dsp/README.md
+!data/rainfall/processed/
+data/rainfall/processed/*
+!data/rainfall/processed/README.md
+!data/rainfall/processed/mosdac/
+data/rainfall/processed/mosdac/*
+!data/rainfall/processed/mosdac/mosdac_bellandur.csv
+!data/rainfall/manifests/
+data/rainfall/manifests/*
+!data/rainfall/manifests/README.md
 data/roads/*
 !data/roads/.gitkeep
 data/validation/*
 !data/validation/.gitkeep
+!data/validation/flood_extent/
+data/validation/flood_extent/*
+!data/validation/flood_extent/README.md
+!data/validation/observations/
+data/validation/observations/*
+!data/validation/observations/depth/
+data/validation/observations/depth/*
+!data/validation/observations/depth/README.md
 
 # P3 generated projected rasters, depth time-series and previews; retain the
 # synthetic forcing fixture and regenerate outputs with scripts/data/run_surface_routing.py.

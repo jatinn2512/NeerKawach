@@ -1,0 +1,2580 @@
+{
+  "source": "mosdac_insat3dr",
+  "source_product": "3RIMG_L2B_IMC",
+  "provider": "MOSDAC / ISRO Space Applications Centre",
+  "source_url": "https://mosdac.gov.in/doi/195/",
+  "documentation_url": "https://mosdac.gov.in/docs/INSAT_3D_ATBD_MAY_2015.pdf",
+  "raw_directory": "data/rainfall/raw/mosdac",
+  "raw_file_count": 341,
+  "raw_files_preserved": true,
+  "processed_file": "data/rainfall/processed/mosdac/mosdac_bellandur.csv",
+  "metadata_file": "data/rainfall/metadata/mosdac_bellandur.json",
+  "study_area": {
+    "bbox": {
+      "min_lat": 12.925,
+      "min_lon": 77.65,
+      "max_lat": 12.945,
+      "max_lon": 77.67
+    },
+    "crs": "EPSG:4326"
+  },
+  "source_raster": {
+    "dimensions": [
+      28,
+      28
+    ],
+    "count": 1,
+    "crs": "EPSG:4326",
+    "dtype": "float32",
+    "nodata": -999.0,
+    "native_resolution_m": 4000,
+    "raw_extent": {
+      "left": 76.98941374040692,
+      "bottom": 11.990497140480036,
+      "right": 78.00237420781532,
+      "top": 13.003457607888436
+    }
+  },
+  "aoi_handling": {
+    "method": "retain source pixels whose geographic footprints intersect canonical bbox; represent each intersecting footprint by its clipped-AOI intersection centroid",
+    "pixels_per_timestamp": 2,
+    "intersecting_pixel_extent": {
+      "left": 77.64060261231232,
+      "bottom": 12.894926129237534,
+      "right": 77.67677977186263,
+      "top": 12.967280448338135
+    },
+    "additional_raster_clip_required": false,
+    "source_rasters_are_aoi_clipped": false
+  },
+  "temporal_coverage": {
+    "start_utc": "2022-08-30T00:15:00Z",
+    "end_utc": "2022-09-07T23:45:00Z",
+    "expected_start_utc": "2022-08-30T00:15:00Z",
+    "expected_end_utc": "2022-09-07T23:45:00Z",
+    "expected_timestamp_count": 432,
+    "unique_timestamps": 341,
+    "nominal_interval_minutes": 30,
+    "observed_gap_intervals_minutes": [
+      30,
+      60,
+      300,
+      330
+    ],
+    "missing_timestamp_count": 91,
+    "missing_timestamps": [
+      "2022-08-30T07:15:00Z",
+      "2022-08-30T17:15:00Z",
+      "2022-08-30T17:45:00Z",
+      "2022-08-30T18:15:00Z",
+      "2022-08-30T18:45:00Z",
+      "2022-08-30T19:15:00Z",
+      "2022-08-30T19:45:00Z",
+      "2022-08-30T20:15:00Z",
+      "2022-08-30T20:45:00Z",
+      "2022-08-30T21:15:00Z",
+      "2022-08-30T21:45:00Z",
+      "2022-08-31T17:15:00Z",
+      "2022-08-31T17:45:00Z",
+      "2022-08-31T18:15:00Z",
+      "2022-08-31T18:45:00Z",
+      "2022-08-31T19:15:00Z",
+      "2022-08-31T19:45:00Z",
+      "2022-08-31T20:15:00Z",
+      "2022-08-31T20:45:00Z",
+      "2022-08-31T21:15:00Z",
+      "2022-08-31T21:45:00Z",
+      "2022-09-01T17:15:00Z",
+      "2022-09-01T17:45:00Z",
+      "2022-09-01T18:15:00Z",
+      "2022-09-01T18:45:00Z",
+      "2022-09-01T19:15:00Z",
+      "2022-09-01T19:45:00Z",
+      "2022-09-01T20:15:00Z",
+      "2022-09-01T20:45:00Z",
+      "2022-09-01T21:15:00Z",
+      "2022-09-01T21:45:00Z",
+      "2022-09-02T17:15:00Z",
+      "2022-09-02T17:45:00Z",
+      "2022-09-02T18:15:00Z",
+      "2022-09-02T18:45:00Z",
+      "2022-09-02T19:15:00Z",
+      "2022-09-02T19:45:00Z",
+      "2022-09-02T20:15:00Z",
+      "2022-09-02T20:45:00Z",
+      "2022-09-02T21:15:00Z",
+      "2022-09-02T21:45:00Z",
+      "2022-09-03T17:15:00Z",
+      "2022-09-03T17:45:00Z",
+      "2022-09-03T18:15:00Z",
+      "2022-09-03T18:45:00Z",
+      "2022-09-03T19:15:00Z",
+      "2022-09-03T19:45:00Z",
+      "2022-09-03T20:15:00Z",
+      "2022-09-03T20:45:00Z",
+      "2022-09-03T21:15:00Z",
+      "2022-09-03T21:45:00Z",
+      "2022-09-04T17:15:00Z",
+      "2022-09-04T17:45:00Z",
+      "2022-09-04T18:15:00Z",
+      "2022-09-04T18:45:00Z",
+      "2022-09-04T19:15:00Z",
+      "2022-09-04T19:45:00Z",
+      "2022-09-04T20:15:00Z",
+      "2022-09-04T20:45:00Z",
+      "2022-09-04T21:15:00Z",
+      "2022-09-04T21:45:00Z",
+      "2022-09-05T17:15:00Z",
+      "2022-09-05T17:45:00Z",
+      "2022-09-05T18:15:00Z",
+      "2022-09-05T18:45:00Z",
+      "2022-09-05T19:15:00Z",
+      "2022-09-05T19:45:00Z",
+      "2022-09-05T20:15:00Z",
+      "2022-09-05T20:45:00Z",
+      "2022-09-05T21:15:00Z",
+      "2022-09-05T21:45:00Z",
+      "2022-09-06T09:45:00Z",
+      "2022-09-06T17:15:00Z",
+      "2022-09-06T17:45:00Z",
+      "2022-09-06T18:15:00Z",
+      "2022-09-06T18:45:00Z",
+      "2022-09-06T19:15:00Z",
+      "2022-09-06T19:45:00Z",
+      "2022-09-06T20:15:00Z",
+      "2022-09-06T20:45:00Z",
+      "2022-09-06T21:15:00Z",
+      "2022-09-06T21:45:00Z",
+      "2022-09-07T17:15:00Z",
+      "2022-09-07T17:45:00Z",
+      "2022-09-07T18:15:00Z",
+      "2022-09-07T18:45:00Z",
+      "2022-09-07T19:15:00Z",
+      "2022-09-07T19:45:00Z",
+      "2022-09-07T20:15:00Z",
+      "2022-09-07T20:45:00Z",
+      "2022-09-07T21:15:00Z"
+    ],
+    "unexpected_timestamps": [],
+    "gaps_are_source_data_gaps": true,
+    "gap_assessment": "Missing slots correspond to absent source GeoTIFF filenames; the ingestion process does not interpolate, fill, or silently discard timestamps."
+  },
+  "value_interpretation": {
+    "raw_value_units": "mm/hour rain rate",
+    "normalized_rainfall_mm": "raw rain rate multiplied by 0.5 hour",
+    "normalized_units": "mm per 30-minute accumulation",
+    "rainfall_rate_preserved": true
+  },
+  "statistics": {
+    "normalized_min_mm": 0.0,
+    "normalized_max_mm": 15.502614974975586,
+    "normalized_mean_mm": 0.24319565614488772,
+    "rate_min_mm_per_hr": 0.0,
+    "rate_max_mm_per_hr": 31.005229949951172,
+    "rate_mean_mm_per_hr": 0.48639131228977545,
+    "nonzero_record_count": 200,
+    "record_count": 682
+  },
+  "validation": {
+    "all_files_readable": true,
+    "all_profiles_identical": true,
+    "all_files_cover_bbox": true,
+    "all_timestamps_unique": true,
+    "invalid_files": []
+  },
+  "records": [
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T00:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T00:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T01:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T01:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T02:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T02:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T03:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T03:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T04:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T04:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T05:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T05:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T06:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T06:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 1
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0715_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T07:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0745_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T07:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0815_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T08:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0845_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T08:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0915_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T09:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_0945_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T09:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T10:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T10:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T11:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T11:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T12:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T12:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T13:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T13:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T14:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T14:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T15:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T15:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T16:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_1645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T16:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_2215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T22:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_2245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T22:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_2315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T23:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_01SEP2022_2345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-01T23:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T00:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T00:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T01:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T01:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T02:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T02:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T03:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T03:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T04:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T04:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T05:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T05:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T06:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T06:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0715_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T07:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0745_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T07:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0815_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T08:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0845_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T08:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0915_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T09:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_0945_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T09:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T10:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T10:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T11:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T11:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T12:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T12:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T13:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T13:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T14:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T14:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T15:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T15:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T16:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_1645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T16:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_2215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T22:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_2245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T22:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_2315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T23:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_02SEP2022_2345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-02T23:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T00:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T00:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T01:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T01:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T02:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T02:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T03:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T03:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T04:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T04:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T05:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T05:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T06:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T06:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0715_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T07:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0745_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T07:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0815_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T08:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0845_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T08:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0915_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T09:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_0945_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T09:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T10:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T10:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T11:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T11:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T12:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T12:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T13:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T13:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T14:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T14:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T15:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T15:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T16:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_1645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T16:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_2215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T22:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_2245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T22:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_2315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T23:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_03SEP2022_2345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-03T23:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T00:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T00:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T01:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T01:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T02:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T02:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T03:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T03:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T04:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T04:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T05:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T05:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T06:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T06:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0715_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T07:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0745_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T07:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0815_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T08:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0845_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T08:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0915_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T09:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_0945_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T09:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T10:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T10:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 1
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T11:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T11:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 1
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T12:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T12:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T13:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T13:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T14:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T14:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T15:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T15:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T16:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_1645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T16:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_2215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T22:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_2245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T22:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_2315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T23:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_04SEP2022_2345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-04T23:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T00:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T00:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T01:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T01:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T02:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T02:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T03:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T03:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T04:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T04:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T05:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T05:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T06:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T06:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0715_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T07:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0745_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T07:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0815_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T08:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0845_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T08:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0915_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T09:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_0945_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T09:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T10:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T10:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T11:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T11:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T12:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T12:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T13:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T13:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T14:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T14:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T15:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T15:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T16:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_1645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T16:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_2215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T22:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_2245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T22:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_2315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T23:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 1
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_05SEP2022_2345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-05T23:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T00:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T00:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T01:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T01:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T02:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T02:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T03:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T03:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T04:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T04:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T05:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T05:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T06:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T06:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0715_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T07:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0745_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T07:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0815_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T08:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0845_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T08:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_0915_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T09:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T10:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T10:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T11:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T11:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T12:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T12:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T13:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T13:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T14:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T14:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T15:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T15:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T16:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_1645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T16:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_2215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T22:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_2245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T22:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_2315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T23:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_06SEP2022_2345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-06T23:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T00:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T00:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T01:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T01:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T02:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T02:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T03:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T03:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T04:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T04:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T05:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T05:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T06:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T06:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0715_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T07:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0745_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T07:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0815_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T08:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0845_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T08:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0915_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T09:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_0945_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T09:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T10:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T10:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T11:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T11:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T12:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T12:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T13:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T13:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T14:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T14:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T15:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T15:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T16:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_1645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T16:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_2145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T21:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_2215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T22:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_2245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T22:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_2315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T23:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_07SEP2022_2345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-09-07T23:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T00:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T00:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T01:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T01:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T02:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T02:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T03:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T03:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T04:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T04:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T05:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T05:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T06:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T06:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0745_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T07:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0815_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T08:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0845_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T08:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0915_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T09:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_0945_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T09:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T10:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T10:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T11:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T11:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T12:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T12:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T13:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T13:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T14:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T14:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T15:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T15:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T16:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_1645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T16:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_2215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T22:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_2245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T22:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_2315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T23:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_30AUG2022_2345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-30T23:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T00:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T00:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T01:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T01:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T02:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T02:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T03:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T03:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T04:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T04:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T05:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T05:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T06:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T06:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0715_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T07:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0745_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T07:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0815_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T08:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0845_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T08:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0915_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T09:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_0945_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T09:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1015_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T10:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1045_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T10:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1115_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T11:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1145_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T11:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 2
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T12:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T12:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T13:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T13:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1415_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T14:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1445_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T14:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1515_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T15:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1545_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T15:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1615_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T16:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_1645_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T16:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_2215_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T22:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_2245_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T22:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_2315_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T23:15:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    },
+    {
+      "file": "data/rainfall/raw/mosdac/3RIMG_L2B_IMC/3RIMG_31AUG2022_2345_L2B_IMC_V01R00_IMC.tif",
+      "timestamp_utc": "2022-08-31T23:45:00Z",
+      "pixels_intersecting_aoi": 2,
+      "valid_pixels": 2,
+      "nonzero_pixels": 0
+    }
+  ],
+  "model_input_compatibility": {
+    "p3_surface_routing": true,
+    "format": "normalized CSV with timestamp/latitude/longitude/rainfall_mm/source",
+    "timestep_seconds": 1800,
+    "p5": "not substituted; validated P5 remains explicitly synthetic-fixture-only"
+  }
+}

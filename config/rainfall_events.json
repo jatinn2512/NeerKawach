@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "study_area": "config/study_area.json",
+  "events": [
+    {
+      "id": "bellandur_2022-08-30_to_2022-09-07",
+      "start_utc": "2022-08-30T00:00:00Z",
+      "end_utc": "2022-09-07T23:59:59Z",
+      "label": "Historical analysis window",
+      "status": "configured_window",
+      "note": "This is a reproducible analysis window, not a claim that all dates are one flood event."
+    }
+  ]
+}
