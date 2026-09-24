@@ -639,12 +639,13 @@ export const SIM_HISTORY = [
 ];
 
 export const SIM_STAGES = [
-  "Preparing geographic data",
-  "Processing rainfall input",
-  "Running drainage / flood model",
-  "Generating flood-depth results",
-  "Processing road risk classification",
-  "Generating map layers",
+  "Loading terrain",
+  "Processing rainfall",
+  "Routing surface runoff",
+  "Coupling drainage network",
+  "Computing flood depth",
+  "Updating road accessibility",
+  "Generating safe route",
 ];
 
 

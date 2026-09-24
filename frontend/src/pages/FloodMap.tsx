@@ -1,4 +1,4 @@
-import { Layers, X } from "lucide-react";
+import { Layers, Pause, Play, X } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { MapSurface } from "@/components/MapSurface";
@@ -42,8 +42,8 @@ export function MapPage() {
               ["Category", r.category],
               ["Length", `${r.lengthKm} km`],
               ["Status", r.risk === "severe" ? "Impassable — closed" : r.risk === "high" ? "High risk — restricted" : "Open"],
-              ["Peak depth expected", `${Math.round(r.peakDepthCm * sim.scenario.factor)} cm at T+04:00`],
-              ["Estimated time to peak", r.depthCm > 0 ? `T+0${Math.min(4, Math.ceil(r.onset + 1))}:30` : "—"],
+              ["Peak depth expected", `${Math.round(r.peakDepthCm * sim.scenario.factor)} cm at T+03:00`],
+              ["Estimated time to peak", r.depthCm > 0 ? `T+0${Math.min(3, Math.ceil(r.onset + 1))}:30` : "—"],
             ] as [string, string][],
           }
         : null;
@@ -84,7 +84,7 @@ export function MapPage() {
   return (
     <AppShell
       title="Interactive Flood Map"
-      subtitle={`${sim.studyArea?.name ?? "Study area unavailable"} · ${sim.selectedTimestamp ?? "No validated timestamp"}`}
+      subtitle={`Bellandur, Bengaluru · 0–3 hour flood progression · T+${sim.selectedTimestamp ?? "00:00"}`}
       flush
     >
       <div className="relative flex h-[calc(100vh-61px)]">
@@ -192,9 +192,10 @@ export function MapPage() {
           )}
 
           <div className="absolute inset-x-4 bottom-4 z-[1000] rounded-md border border-border bg-card/95 p-4 backdrop-blur">
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-muted-foreground tabular">Replay</span>
-              <span className="text-xs text-muted-foreground tabular">{sim.timestamps[0] ?? "Unavailable"}</span>
+            <div className="flex items-center gap-3">
+              <button onClick={sim.togglePlay} className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground" aria-label={sim.playing ? "Pause timeline" : "Play timeline"}>{sim.playing ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}</button>
+              <span className="text-xs text-muted-foreground tabular">Flood progression</span>
+              <span className="text-xs text-muted-foreground tabular">{sim.timestamps[0] ?? "00:00"}</span>
               <input
                 type="range"
                 min={0}
@@ -205,14 +206,15 @@ export function MapPage() {
                 className="h-1.5 flex-1 accent-[var(--primary)]"
                 aria-label="Simulation timeline"
               />
-              <span className="text-xs text-muted-foreground tabular">{sim.timestamps.at(-1) ?? "Unavailable"}</span>
+              <span className="text-xs text-muted-foreground tabular">{sim.timestamps.at(-1) ?? "03:00"}</span>
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3 text-xs md:grid-cols-5">
+            <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3 text-xs md:grid-cols-6">
               <Stat label="Replay timestamp" value={sim.selectedTimestamp ?? "Unavailable"} />
-              <Stat label="Rainfall intensity" value="Not supplied by P9 flood products" />
-              <Stat label="Affected area" value={sim.summary ? `${sim.metrics.affectedAreaKm2.toFixed(3)} km²` : "Unavailable"} />
-              <Stat label="Max flood depth" value={sim.summary ? `${sim.metrics.maxDepthCm.toFixed(1)} cm` : "Unavailable"} />
+              <Stat label="Rainfall intensity" value={`${sim.metrics.rainfallNow} mm/hr`} />
+              <Stat label="Accumulated rainfall" value={`${sim.metrics.accumulatedRainfallMm} mm`} />
+              <Stat label="Affected area" value={`${sim.metrics.affectedAreaKm2.toFixed(1)} km²`} />
+              <Stat label="Max flood depth" value={`${sim.metrics.maxDepthCm.toFixed(1)} cm`} />
               <div>
                 <p className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
                   Overall risk

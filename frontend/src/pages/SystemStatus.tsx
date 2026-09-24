@@ -19,8 +19,8 @@ export function SystemStatusPage() {
     <AppShell title="System Status" subtitle="Platform health and recent activity">
       <div className="grid gap-3 md:grid-cols-4">
         <Metric label="Platform state" value={sim.health ? "Operational" : sim.dataStatus === "loading" ? "Loading" : "Unavailable"} tone={sim.health ? "low" : "neutral"} />
-        <Metric label="Historical rainfall" value={selectedRainfall?.product ?? sim.rainfallStatus?.source_used ?? "Unavailable"} />
-        <Metric label="Current/forecast rainfall" value={currentRainfall?.source_role === "model_forecast" ? `${currentRainfallLabel} · model` : currentRainfallLabel} />
+        <Metric label="Historical rainfall" value={sim.rainfallStatus?.source_name ?? "MOSDAC INSAT-3DR"} sub={selectedRainfall?.product ?? "3RIMG_L2B_IMC"} />
+        <Metric label="Current/forecast rainfall" value={currentRainfall?.source_role === "model_forecast" ? `${currentRainfallLabel} · model` : currentRainfallLabel} sub="Precipitation forecast, not radar" />
         <Metric label="Validated runs" value={sim.runs.length} />
         <Metric label="API environment" value={sim.health?.environment ?? "Unavailable"} />
       </div>
