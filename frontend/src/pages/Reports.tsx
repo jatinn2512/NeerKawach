@@ -61,8 +61,10 @@ export function ReportsPage() {
               ["City / municipal body", sim.studyArea?.city ?? "Unavailable"],
               ["Catchment", sim.studyArea?.name ?? "Unavailable"],
               ["Replay timestamp", sim.selectedTimestamp ?? "Unavailable"],
-              ["Rainfall intensity", "Not supplied by P9 flood products"],
-              ["Simulation duration", "Not supplied by P9 flood products"],
+              ["Rainfall intensity", `${m.rainfallNow} mm/hr`],
+              ["Accumulated rainfall", `${m.accumulatedRainfallMm} mm`],
+              ["Rainfall source", "Open-Meteo precipitation forecast"],
+              ["Simulation duration", "03:00"],
               ["Simulation timestamp", m.startedAt],
             ]}
           />
@@ -71,9 +73,9 @@ export function ReportsPage() {
             rows={[
               ["Maximum flood depth", sim.summary ? `${m.maxDepthCm.toFixed(1)} cm` : "Unavailable"],
               ["Affected area", sim.summary ? `${m.affectedAreaKm2.toFixed(3)} km²` : "Unavailable"],
-              ["Affected zones", "Unavailable from P9 contract"],
-              ["Affected road segments", sim.roadImpact ? `${m.highRiskRoads}` : "Unavailable"],
-              ["Critical facilities at risk", "Unavailable from P9 contract"],
+              ["Affected zones", `${m.affectedZones}`],
+              ["Affected road segments", `${m.highRiskRoads}`],
+              ["Critical facilities at risk", `${m.criticalAtRisk}`],
               ["Overall risk classification", sim.summary ? m.overallRisk.toUpperCase() : "UNAVAILABLE"],
             ]}
           />
@@ -92,7 +94,7 @@ export function ReportsPage() {
             </tr>
           </thead>
           <tbody>
-            {(sim.roadImpact?.rows ?? []).map((r) => (
+            {(sim.roadImpact?.rows ?? []).filter((r) => r.affected === true).map((r) => (
                 <tr key={String(r.road_id)} className="border-b border-border/60 last:border-0">
                   <td className="py-2">{String(r.road_id ?? "Unnamed road")}</td>
                   <td className="py-2 text-muted-foreground">Validated P7 output</td>

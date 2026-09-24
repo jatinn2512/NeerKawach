@@ -17,7 +17,7 @@ export function DashboardPage() {
       title: String(row.road_id ?? "Unnamed road"),
       depth: row.max_intersecting_depth_m == null ? null : Number(row.max_intersecting_depth_m) * 100,
       risk: String(row.risk_class ?? "moderate") as "low" | "moderate" | "high" | "severe",
-      reason: "Validated P7 road-impact output",
+      reason: "Dynamic road access assessment",
     }));
 
   return (
@@ -29,25 +29,26 @@ export function DashboardPage() {
           to="/simulation"
           className="rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          New Simulation
+          Run Simulation
         </RouteLink>
       }
     >
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
-        <Metric label="Validated replay" value={sim.selectedTimestamp ?? "Unavailable"} sub={sim.studyArea?.name ?? "Study area unavailable"} />
+        <Metric label="Study area" value="Bellandur" sub="Bengaluru · Bellandur Lake Basin" />
         <Metric
           label="Current flood risk"
           value={sim.summary ? m.overallRisk.toUpperCase() : "UNAVAILABLE"}
           tone={m.overallRisk}
-          sub={sim.summary ? `Max depth ${m.maxDepthCm.toFixed(1)} cm` : "No validated flood product"}
+          sub={`Max depth ${m.maxDepthCm.toFixed(1)} cm at ${m.clock}`}
         />
-        <Metric label="Affected area" value={sim.summary ? `${m.affectedAreaKm2.toFixed(3)} km²` : "Unavailable"} sub="Validated P7 metric" />
-        <Metric label="Affected roads" value={sim.roadImpact ? m.highRiskRoads : "Unavailable"} sub="Validated P7 road impacts" />
+        <Metric label="Rainfall now" value={`${m.rainfallNow} mm/hr`} sub={`${m.accumulatedRainfallMm} mm accumulated`} />
+        <Metric label="Affected area" value={`${m.affectedAreaKm2.toFixed(1)} km²`} sub="Flood extent" />
+        <Metric label="Affected roads" value={m.highRiskRoads} sub="Roads with access impact" />
         <Metric label="Critical locations" value={m.criticalAtRisk} sub="Facilities with affected access" />
         <Metric
           label="Simulation status"
-          value={sim.dataStatus === "loading" ? "Loading" : sim.dataStatus === "ready" ? `T+${m.clock}` : "Unavailable"}
-          sub={sim.dataStatus === "ready" ? "Validated products available" : "Backend/product status"}
+          value={sim.status === "running" ? "Processing" : sim.status === "complete" ? "Complete" : "Ready"}
+          sub={sim.status === "complete" ? `Flood result at T+${m.clock}` : "Extreme rainfall scenario configured"}
         />
       </div>
 
@@ -71,12 +72,14 @@ export function DashboardPage() {
           <dl className="space-y-3 text-sm">
             {[
               ["Selected area", sim.studyArea?.name ?? "Unavailable"],
-              ["Replay timestamp", sim.selectedTimestamp ?? "Unavailable"],
-              ["Data products", sim.apiStatus ? Object.entries(sim.apiStatus.available_data_products).filter(([, value]) => value).map(([key]) => key.toUpperCase()).join(", ") || "None" : "Unavailable"],
-              ["Simulation start", m.startedAt],
+              ["Selected area", "Bellandur, Bengaluru"],
+              ["Rainfall event", "Extreme monsoon storm"],
+              ["Rainfall source", "Open-Meteo precipitation forecast"],
               ["Current simulation time", `T+${m.clock}`],
-              ["Maximum flood depth", sim.summary ? `${m.maxDepthCm.toFixed(1)} cm` : "Unavailable"],
-              ["Affected area", sim.summary ? `${m.affectedAreaKm2.toFixed(3)} km²` : "Unavailable"],
+              ["Rainfall intensity", `${m.rainfallNow} mm/hr`],
+              ["Accumulated rainfall", `${m.accumulatedRainfallMm} mm`],
+              ["Maximum flood depth", `${m.maxDepthCm.toFixed(1)} cm`],
+              ["Affected area", `${m.affectedAreaKm2.toFixed(1)} km²`],
             ].map(([k, v]) => (
               <div key={k} className="flex items-start justify-between gap-4 border-b border-border/60 pb-2.5 last:border-0">
                 <dt className="text-muted-foreground">{k}</dt>
@@ -88,7 +91,7 @@ export function DashboardPage() {
             <span className="flex items-center gap-2 text-xs text-muted-foreground">
               <Droplets className="size-4 text-primary" /> Rainfall now
             </span>
-            <span className="text-sm font-semibold tabular">Not supplied by P9 flood products</span>
+            <span className="text-sm font-semibold tabular">{m.rainfallNow} mm/hr</span>
           </div>
         </Panel>
       </div>
@@ -117,7 +120,7 @@ export function DashboardPage() {
                       <RiskBadge risk={a.risk} />
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {a.reason} · Flood depth {a.depth} cm
+                      {a.reason} · Flood depth {a.depth == null ? "—" : `${a.depth.toFixed(1)} cm`}
                     </p>
                   </div>
                 </li>
@@ -126,9 +129,9 @@ export function DashboardPage() {
             <li className="flex items-start gap-3 rounded-md border border-border bg-panel px-3 py-2.5">
               <Waves className="mt-0.5 size-4 text-risk-high" />
               <div className="flex-1">
-                <p className="text-sm font-medium">Bellandur lake spillover channel above threshold</p>
+                <p className="text-sm font-medium">{sim.status === "complete" ? "Bellandur lake spillover channel above threshold" : "Rainfall event is being monitored"}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Drainage capacity exceeded in Ward 04 — rapid accumulation in the low-lying basin.
+                  {sim.status === "complete" ? "Drainage capacity exceeded in Ward 04 — rapid accumulation in the low-lying basin." : "Run the simulation to project runoff, flood depth and road access."}
                 </p>
               </div>
             </li>

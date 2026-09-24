@@ -8,7 +8,7 @@ export function TimeSlider() {
       {sim.playing ? <Pause className="size-4" /> : <Play className="size-4" />}
     </button>
     <span className="text-xs text-muted-foreground tabular">00:00</span>
-    <input className="h-1.5 flex-1 accent-[var(--primary)]" type="range" min="0" max="4" step="0.25" value={sim.time} onChange={(e) => sim.setTime(Number(e.target.value))} aria-label="Simulation timeline" />
-    <span className="text-xs text-muted-foreground tabular">04:00</span>
+    <input className="h-1.5 flex-1 accent-[var(--primary)]" type="range" min="0" max="3" step="0.5" value={sim.time} onChange={(e) => sim.setTime(Number(e.target.value))} aria-label="Simulation timeline" />
+    <span className="text-xs text-muted-foreground tabular">03:00</span>
   </div>;
 }

@@ -14,6 +14,12 @@ build/
 frontend/.cache/
 frontend/.parcel-cache/
 
+# Browser smoke-test profiles and reports
+.chrome-demo-test*/
+.edge-demo-test*/
+frontend/playwright-report/
+frontend/test-results/
+
 # Python caches and local environments
 __pycache__/
 *.py[cod]

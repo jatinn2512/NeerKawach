@@ -58,7 +58,7 @@ export default function FloodMapView({
       {sim.routeResults.baseline?.geometry ? <GeoJSON data={sim.routeResults.baseline.geometry as never} pathOptions={{ color: "#f87171", weight: 3, dashArray: "8 6" }} /> : null}
 
       {layers.floodRisk &&
-        sim.zones.map((z) => (
+        sim.zones.filter((z) => z.depthCm > 0).map((z) => (
           <Polygon
             key={z.id}
             positions={z.polygon}

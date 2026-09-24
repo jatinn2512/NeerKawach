@@ -48,7 +48,7 @@ export type FloodTimeseries = {
   units: { depth: string; area: string };
   rows: Array<Record<string, string | number | boolean | null>>;
 };
-export type GeoJson = { type: string; features?: unknown[]; geometry?: unknown; properties?: Record<string, unknown> };
+export type GeoJson = { type: string; features?: unknown[]; geometry?: unknown; coordinates?: unknown; properties?: Record<string, unknown> };
 export type RoadImpact = {
   timestamp: string | null; road_id: string | null; units: Record<string, string>;
   rows: Array<Record<string, string | number | boolean | null>>;
@@ -75,6 +75,7 @@ export type RouteResponse = {
   status: string; routing_mode: "baseline" | "flood-aware"; route_timestamp: string;
   total_distance_m: number; route_cost: number; maximum_flood_depth_m: number;
   affected_segments: unknown[]; avoided_flooded_segments: unknown[]; geometry: GeoJson; source_phase: string;
+  estimated_travel_time_min?: number; route_name?: string; via?: string;
 };
 
 export const floodApi = {
