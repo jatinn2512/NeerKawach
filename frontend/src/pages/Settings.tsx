@@ -92,7 +92,7 @@ export function SettingsPage() {
       <div>
         <button
           onClick={() => toast.success("Preferences saved")}
-          className="rounded-md bg-primary px-4 py-2.5 text-sm font-bold tracking-wide text-primary-foreground uppercase hover:bg-primary/90"
+          className="rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
         >
           Save Preferences
         </button>
@@ -104,7 +104,7 @@ export function SettingsPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-[11px] tracking-[0.1em] text-muted-foreground uppercase">{label}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
       <div className="mt-1.5">{children}</div>
     </label>
   );

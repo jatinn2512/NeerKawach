@@ -26,7 +26,7 @@ export function PublicAlertsPage() {
       title="Public Alerts"
       subtitle="Draft warnings for affected wards — dispatch requires operator confirmation"
     >
-      <div className="flex items-start gap-2 rounded-md border border-risk-moderate/40 bg-risk-moderate/10 p-3 text-xs">
+      <div className="flex items-start gap-2 rounded-md border-l-2 border-risk-moderate bg-risk-moderate/8 p-3 text-xs">
         <ShieldAlert className="mt-0.5 size-4 shrink-0 text-risk-moderate" />
         <p>
           This is a prototype interface. Alerts drafted here are not transmitted
@@ -39,7 +39,7 @@ export function PublicAlertsPage() {
         <Panel title="Draft alert">
           <div className="space-y-4">
             <label className="block">
-              <span className="text-[11px] tracking-[0.1em] text-muted-foreground uppercase">
+              <span className="text-xs text-muted-foreground">
                 Target area
               </span>
               <select
@@ -52,7 +52,7 @@ export function PublicAlertsPage() {
             </label>
 
             <label className="block">
-              <span className="text-[11px] tracking-[0.1em] text-muted-foreground uppercase">
+              <span className="text-xs text-muted-foreground">
                 Message to public
               </span>
               <textarea
@@ -87,7 +87,7 @@ export function PublicAlertsPage() {
                   description: `${area} · ${RISK_LABEL[m.overallRisk]} risk warning (prototype — not transmitted).`,
                 })
               }
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-bold tracking-wide text-primary-foreground uppercase hover:bg-primary/90 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               <Megaphone className="size-4" /> Dispatch Alert
             </button>
@@ -118,7 +118,7 @@ export function PublicAlertsPage() {
       <Panel title="Alert history" bodyClassName="p-0">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
+            <tr className="border-b border-border text-left text-xs text-muted-foreground">
               <th className="px-4 py-2.5 font-medium">Alert ID</th>
               <th className="px-4 py-2.5 font-medium">Area</th>
               <th className="px-4 py-2.5 font-medium">Level</th>

@@ -1,16 +1,15 @@
 import { lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import type { MapLayers } from "./map-layers";
+import type { MapPadding } from "./FloodMapView";
 import { useSim } from "@/state/simulation";
 
 const FloodMapView = lazy(() => import("./FloodMapView"));
 
 function MapSkeleton() {
   return (
-    <div className="flex h-full w-full items-center justify-center bg-panel">
-      <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
-        Loading geospatial layers…
-      </p>
+    <div className="flex h-full w-full items-center justify-center bg-[#0b1824]">
+      <p className="text-xs text-muted-foreground">Loading geospatial layers…</p>
     </div>
   );
 }
@@ -20,13 +19,16 @@ export function MapSurface({
   layers,
   interactive = true,
   showRoutes = false,
-  zoom,
+  focus,
+  padding,
 }: {
   className?: string | undefined;
   layers?: MapLayers | undefined;
   interactive?: boolean | undefined;
   showRoutes?: boolean | undefined;
-  zoom?: number | undefined;
+  /** "route" frames the computed route once available; otherwise the study area. */
+  focus?: "area" | "route" | undefined;
+  padding?: MapPadding | undefined;
 }) {
   const sim = useSim();
   if (!sim.studyArea) {
@@ -35,18 +37,18 @@ export function MapSurface({
     </div>;
   }
   return (
-    <div className={cn("relative overflow-hidden bg-panel", className)}>
+    <div className={cn("relative overflow-hidden bg-[#0b1824]", className)}>
       <Suspense fallback={<MapSkeleton />}>
           <FloodMapView
             layers={layers}
             interactive={interactive}
             showRoutes={showRoutes}
-            zoom={zoom}
+            focus={focus}
+            padding={padding}
           />
       </Suspense>
-      {sim.dataStatus === "unavailable" ? <div className="absolute inset-x-3 top-3 z-[1000] rounded-md border border-status-warn/40 bg-card/95 px-3 py-2 text-xs text-status-warn shadow-lg">Validated flood geometry is unavailable; no flood layer is being shown.</div> : null}
-      {sim.dataStatus === "error" ? <div className="absolute inset-x-3 top-3 z-[1000] rounded-md border border-status-down/40 bg-card/95 px-3 py-2 text-xs text-status-down shadow-lg">{sim.dataError}</div> : null}
+      {sim.dataStatus === "unavailable" ? <div className="absolute inset-x-3 top-3 z-1000 rounded-md bg-card/95 px-3 py-2 text-xs text-status-warn shadow-lg">Validated flood geometry is unavailable; no flood layer is being shown.</div> : null}
+      {sim.dataStatus === "error" ? <div className="absolute inset-x-3 top-3 z-1000 rounded-md bg-card/95 px-3 py-2 text-xs text-status-down shadow-lg">{sim.dataError}</div> : null}
     </div>
   );
 }
-

@@ -17,7 +17,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 import { useSim } from "@/state/simulation";
 import { cn } from "@/lib/utils";
-import { RiskBadge } from "./RiskUI";
+import { RiskBadge, riskText } from "./RiskUI";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -37,12 +37,16 @@ export function AppShell({
   actions,
   children,
   flush = false,
+  fill = false,
 }: {
   title: string;
   subtitle?: string;
   actions?: ReactNode;
   children: ReactNode;
+  /** Edge-to-edge content sized to exactly one viewport (full-bleed map pages). */
   flush?: boolean;
+  /** Padded content that fills one viewport on wide screens; children may use xl:flex-1. */
+  fill?: boolean;
 }) {
   const sim = useSim();
   const navigate = useNavigate();
@@ -62,8 +66,8 @@ export function AppShell({
             <p className="text-sm font-semibold tracking-wide text-sidebar-foreground">
               FloodOps
             </p>
-            <p className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
-              Flood Decision Support
+            <p className="text-[11px] text-muted-foreground">
+              Flood decision support
             </p>
           </div>
         </div>
@@ -85,7 +89,7 @@ export function AppShell({
           ))}
 
           <div className="mt-3 border-t border-sidebar-border pt-3">
-            <p className="px-3 pb-1 text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
+            <p className="px-3 pb-1 text-[11px] text-muted-foreground">
               Secondary
             </p>
             <RouteLink
@@ -124,7 +128,7 @@ export function AppShell({
         </div>
       </aside>
 
-      <div className="flex min-h-screen flex-1 flex-col pl-64">
+      <div className={cn("flex min-h-screen flex-1 flex-col pl-64", flush && "h-screen", fill && "xl:h-screen")}>
         <header className="fo-app-header sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border bg-background/95 px-6 py-3 backdrop-blur">
           <div>
             <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
@@ -134,22 +138,20 @@ export function AppShell({
           </div>
           <div className="flex items-center gap-3">
             {actions}
-            <div className="hidden items-center gap-3 rounded-md border border-border bg-card px-3 py-1.5 lg:flex">
-              <AlertTriangle className="size-4 text-risk-high" />
+            <div className="hidden items-center gap-3 border-l border-white/6 pl-4 lg:flex">
+              <AlertTriangle className={cn("size-4", sim.summary ? riskText[sim.metrics.overallRisk] : "text-muted-foreground")} />
               <div className="leading-tight">
-                <p className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
-                  Live risk
-                </p>
+                <p className="text-[11px] text-muted-foreground">Live risk</p>
                 <p className="text-xs font-medium tabular">
                   {sim.summary ? `T+${sim.metrics.clock} · max ${sim.metrics.maxDepthCm.toFixed(1)} cm` : "Validated flood data unavailable"}
                 </p>
               </div>
-              {sim.summary ? <RiskBadge risk={sim.metrics.overallRisk} /> : <span className="text-[11px] text-muted-foreground">UNAVAILABLE</span>}
+              {sim.summary ? <RiskBadge risk={sim.metrics.overallRisk} /> : <span className="text-[11px] text-muted-foreground">Unavailable</span>}
             </div>
           </div>
         </header>
 
-        <main className={cn("flex-1", flush ? "" : "space-y-4 p-6")}>{children}</main>
+        <main className={cn("flex-1", flush ? "min-h-0" : fill ? "flex flex-col gap-4 p-6 xl:min-h-0" : "space-y-4 p-6")}>{children}</main>
       </div>
     </div>
   );

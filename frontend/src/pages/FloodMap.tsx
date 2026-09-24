@@ -87,10 +87,10 @@ export function MapPage() {
       subtitle={`Bellandur, Bengaluru · 0–3 hour flood progression · T+${sim.selectedTimestamp ?? "00:00"}`}
       flush
     >
-      <div className="relative flex h-[calc(100vh-61px)]">
-        <div className="w-72 shrink-0 overflow-y-auto border-r border-border bg-card p-4">
-          <h2 className="flex items-center gap-2 text-[12px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-            <Layers className="size-4" /> Map layers
+      <div className="relative flex h-full">
+        <div className="w-72 shrink-0 overflow-y-auto border-r border-white/5 bg-card p-4">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Layers className="size-4 text-muted-foreground" /> Map layers
           </h2>
           <div className="mt-3 space-y-1.5">
             {LAYER_LABELS.map((l) => (
@@ -111,7 +111,7 @@ export function MapPage() {
             ))}
           </div>
 
-          <h2 className="mt-6 text-[12px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+          <h2 className="mt-6 text-sm font-semibold">
             Flood depth legend
           </h2>
           <ul className="mt-3 space-y-2 text-xs">
@@ -138,21 +138,22 @@ export function MapPage() {
             </li>
           </ul>
 
-          <div className="mt-6 rounded-md border border-border bg-panel p-3 text-xs text-muted-foreground">
+          <p className="mt-6 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
             Colours represent simulated flood depth categories produced by the
             hydrodynamic model for the selected scenario — not observed
             conditions.
-          </div>
+          </p>
         </div>
 
-        <div className="relative flex-1">
-          <MapSurface className="absolute inset-0" layers={layers} />
+        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="relative min-h-0 flex-1">
+          <MapSurface className="absolute inset-0" layers={layers} padding={[40, 40, 40, 40]} />
 
           {selected ? (
-            <div className="absolute top-4 right-4 z-[1000] w-80 rounded-md border border-border bg-card/95 p-4 shadow-xl backdrop-blur">
+            <div className="absolute top-4 right-4 z-1000 w-80 rounded-lg bg-card/95 p-4 shadow-2xl backdrop-blur">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
+                  <p className="text-xs text-muted-foreground">
                     {selected.kind}
                   </p>
                   <h3 className="text-sm font-semibold">{selected.name}</h3>
@@ -165,9 +166,9 @@ export function MapPage() {
                 </button>
               </div>
 
-              <div className="mt-3 flex items-end justify-between rounded-md border border-border bg-panel px-3 py-2.5">
+              <div className="mt-3 flex items-end justify-between rounded-md bg-panel px-3 py-2.5">
                 <div>
-                  <p className="text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
+                  <p className="text-xs text-muted-foreground">
                     Flood depth
                   </p>
                   <p className="text-2xl font-semibold tabular">{selected.depth} cm</p>
@@ -185,13 +186,14 @@ export function MapPage() {
               </dl>
             </div>
           ) : (
-            <div className="absolute top-4 right-4 z-[1000] w-64 rounded-md border border-border bg-card/90 px-3.5 py-2.5 text-xs text-muted-foreground backdrop-blur">
+            <div className="absolute top-4 right-4 z-1000 w-64 rounded-md bg-card/85 px-3.5 py-2.5 text-xs text-muted-foreground shadow-lg backdrop-blur">
               Click any road, flood zone or facility on the map to inspect
               simulated depth and risk.
             </div>
           )}
+        </div>
 
-          <div className="absolute inset-x-4 bottom-4 z-[1000] rounded-md border border-border bg-card/95 p-4 backdrop-blur">
+          <div className="shrink-0 border-t border-white/5 bg-card px-5 py-3">
             <div className="flex items-center gap-3">
               <button onClick={sim.togglePlay} className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground" aria-label={sim.playing ? "Pause timeline" : "Play timeline"}>{sim.playing ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}</button>
               <span className="text-xs text-muted-foreground tabular">Flood progression</span>
@@ -209,14 +211,14 @@ export function MapPage() {
               <span className="text-xs text-muted-foreground tabular">{sim.timestamps.at(-1) ?? "03:00"}</span>
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border pt-3 text-xs md:grid-cols-6">
+            <div className="mt-3 grid grid-cols-2 gap-3 text-xs md:grid-cols-6">
               <Stat label="Replay timestamp" value={sim.selectedTimestamp ?? "Unavailable"} />
               <Stat label="Rainfall intensity" value={`${sim.metrics.rainfallNow} mm/hr`} />
               <Stat label="Accumulated rainfall" value={`${sim.metrics.accumulatedRainfallMm} mm`} />
               <Stat label="Affected area" value={`${sim.metrics.affectedAreaKm2.toFixed(1)} km²`} />
               <Stat label="Max flood depth" value={`${sim.metrics.maxDepthCm.toFixed(1)} cm`} />
               <div>
-                <p className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+                <p className="text-xs text-muted-foreground">
                   Overall risk
                 </p>
                 <p
@@ -230,7 +232,7 @@ export function MapPage() {
                     }[sim.metrics.overallRisk],
                   )}
                 >
-                  {sim.summary ? RISK_LABEL[sim.metrics.overallRisk].toUpperCase() : "UNAVAILABLE"}
+                  {sim.summary ? RISK_LABEL[sim.metrics.overallRisk] : "Unavailable"}
                 </p>
               </div>
             </div>
@@ -244,7 +246,7 @@ export function MapPage() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">{label}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-0.5 text-sm font-semibold tabular">{value}</p>
     </div>
   );
