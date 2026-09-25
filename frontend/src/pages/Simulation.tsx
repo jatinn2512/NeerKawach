@@ -19,7 +19,7 @@ export function SimulationPage() {
         <button
           onClick={sim.runSimulation}
           disabled={sim.status === "running"}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-xs font-bold tracking-wide text-primary-foreground uppercase transition-colors hover:bg-primary/90 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
         >
           {sim.status === "running" ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
           {sim.status === "running" ? "Processing…" : "Run Simulation"}
@@ -58,14 +58,14 @@ export function SimulationPage() {
       </div>
 
       <Panel title="Processing sequence">
-        <ol className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+        <ol className="grid gap-x-6 gap-y-3 md:grid-cols-2 xl:grid-cols-4">
           {SIM_STAGES.map((stage, index) => {
             const complete = sim.stage > index;
             const active = sim.status === "running" && sim.stage === index;
             return (
-              <li key={stage} className={`flex items-center gap-2 rounded-md border px-3 py-2.5 text-sm ${complete ? "border-status-ok/40 bg-status-ok/10" : active ? "border-primary/50 bg-primary/10" : "border-border bg-panel"}`}>
+              <li key={stage} className="flex items-center gap-2.5 text-sm">
                 {complete ? <CheckCircle2 className="size-4 text-status-ok" /> : active ? <Loader2 className="size-4 animate-spin text-primary" /> : <span className="flex size-4 items-center justify-center rounded-full border border-border text-[10px] text-muted-foreground">{index + 1}</span>}
-                <span className={active ? "font-medium text-primary" : "text-muted-foreground"}>{stage}</span>
+                <span className={active ? "font-medium text-primary" : complete ? "text-foreground" : "text-muted-foreground"}>{stage}</span>
               </li>
             );
           })}
@@ -76,7 +76,7 @@ export function SimulationPage() {
         <div className="grid gap-2 md:grid-cols-7">
           {DEMO_TIMELINE.map((point) => {
             const active = point.label === sim.selectedTimestamp;
-            return <button key={point.label} onClick={() => sim.setSelectedTimestamp(point.label)} className={`rounded-md border p-2 text-left transition-colors ${active ? "border-primary bg-primary/10" : "border-border bg-panel hover:bg-accent"}`}><p className="text-xs font-semibold tabular">{point.label}</p><p className="mt-2 text-sm font-medium tabular">{point.rainfallMmHr} <span className="text-[10px] text-muted-foreground">mm/hr</span></p><p className="mt-1 text-xs text-muted-foreground tabular">{point.maxDepthCm} cm depth</p></button>;
+            return <button key={point.label} onClick={() => sim.setSelectedTimestamp(point.label)} className={`rounded-md p-2.5 text-left transition-colors ${active ? "bg-primary/12 ring-1 ring-primary/60" : "bg-panel hover:bg-accent"}`}><p className="text-xs font-semibold tabular">{point.label}</p><p className="mt-2 text-sm font-medium tabular">{point.rainfallMmHr} <span className="text-[10px] text-muted-foreground">mm/hr</span></p><p className="mt-1 text-xs text-muted-foreground tabular">{point.maxDepthCm} cm depth</p></button>;
           })}
         </div>
       </Panel>
@@ -85,5 +85,5 @@ export function SimulationPage() {
 }
 
 function Data({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-md border border-border bg-panel p-3"><p className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">{label}</p><p className="mt-1 text-sm font-semibold tabular">{value}</p></div>;
+  return <div className="rounded-md bg-panel p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-sm font-semibold tabular">{value}</p></div>;
 }

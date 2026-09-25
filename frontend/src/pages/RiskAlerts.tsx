@@ -1,6 +1,8 @@
 import { AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { Metric, Panel, RiskBadge } from "@/components/RiskUI";
+import { Metric, MetricStrip, Panel, RiskBadge, TABLE_HEAD, riskBar, riskText } from "@/components/RiskUI";
+import { RISK_LABEL, type RiskLevel } from "@/data/pilot";
+import { cn } from "@/lib/utils";
 import { useSim } from "@/state/simulation";
 
 const ACTIONS: Record<string, string> = {
@@ -13,17 +15,20 @@ const ACTIONS: Record<string, string> = {
 export function RiskPage() {
   const sim = useSim();
   const m = sim.metrics;
-  const flagged = (sim.roadImpact?.rows ?? []).filter((row) => row.affected === true || row.affected === "True" || row.affected === "true");
+  const flagged = (sim.roadImpact?.rows ?? [])
+    .filter((row) => row.affected === true || row.affected === "True" || row.affected === "true")
+    .sort((a, b) => Number(b.max_intersecting_depth_m ?? 0) - Number(a.max_intersecting_depth_m ?? 0));
 
   return (
     <AppShell title="Risk & Alerts" subtitle="Operator decision support — not a public notification channel">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-risk-high/40 bg-risk-high/10 px-5 py-4">
+      <div className="relative flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-lg bg-card py-4 pr-6 pl-7">
+        <span className={cn("absolute inset-y-0 left-0 w-1.5", riskBar[m.overallRisk])} />
         <div>
-          <p className="text-[11px] tracking-[0.16em] text-risk-high uppercase">
+          <p className={cn("text-xs font-medium", riskText[m.overallRisk])}>
             Current overall assessment
           </p>
           <p className="mt-1 text-2xl font-semibold">
-            {(m.overallRisk ?? "unavailable").toUpperCase()} FLOOD RISK
+            <span className={riskText[m.overallRisk]}>{RISK_LABEL[m.overallRisk]}</span> flood risk
           </p>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {sim.selectedTimestamp ?? "No validated timestamp selected"} · simulation time {m.clock}
@@ -45,29 +50,30 @@ export function RiskPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <MetricStrip className="md:grid-cols-4">
         <Metric label="Max flood depth" value={sim.summary ? `${m.maxDepthCm.toFixed(1)} cm` : "Unavailable"} tone={m.overallRisk ?? "neutral"} />
-        <Metric label="Affected area" value={sim.summary ? `${m.affectedAreaKm2.toFixed(3)} km²` : "Unavailable"} />
+        <Metric label="Affected area" value={sim.summary ? `${m.affectedAreaKm2.toFixed(1)} km²` : "Unavailable"} />
         <Metric label="Road impacts" value={sim.roadImpact ? flagged.length : "Unavailable"} tone="high" />
         <Metric label="Validated timestamp" value={sim.selectedTimestamp ?? "Unavailable"} />
-      </div>
+      </MetricStrip>
 
-      <Panel title="Critical alerts & recommended actions">
-        <ul className="space-y-2.5">
+      <Panel title="Critical alerts & recommended actions" bodyClassName="p-0">
+        <ul>
           {flagged.length === 0 ? (
-            <li className="text-sm text-muted-foreground">
+            <li className="px-4 pb-4 text-sm text-muted-foreground">
               No zones or roads currently classified above low risk.
             </li>
           ) : (
             flagged.map((r) => (
-              <li key={String(r.road_id)} className="rounded-md border border-border bg-panel p-3.5">
+              <li key={String(r.road_id)} className="relative border-t border-border py-3 pr-4 pl-6">
+                <span className={cn("absolute top-3 bottom-3 left-3 w-0.5 rounded-full", riskBar[String(r.risk_class ?? "high") as RiskLevel] ?? "bg-risk-high")} />
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="flex items-center gap-2 text-sm font-semibold">
-                    <AlertTriangle className="size-4 text-risk-high" /> {String(r.road_id ?? "Unnamed road")}
+                    <AlertTriangle className={cn("size-4", riskText[String(r.risk_class ?? "high") as RiskLevel] ?? "text-risk-high")} /> {String(r.road_id ?? "Unnamed road")}
                   </p>
-                  <span className="text-xs font-semibold uppercase text-risk-high">{String(r.risk_class ?? "affected")}</span>
+                  {r.risk_class && String(r.risk_class) in riskText ? <RiskBadge risk={String(r.risk_class) as RiskLevel} /> : <span className="text-xs text-muted-foreground">{String(r.risk_class ?? "Affected")}</span>}
                 </div>
-                <div className="mt-2 grid gap-2 text-xs md:grid-cols-3">
+                <div className="mt-1.5 grid gap-2 pl-6 text-xs md:grid-cols-[160px_220px_1fr]">
                   <p>
                     <span className="text-muted-foreground">Flood depth: </span>
                     <span className="font-medium tabular">{r.max_intersecting_depth_m == null ? "Unavailable" : `${Number(r.max_intersecting_depth_m) * 100} cm`}</span>
@@ -90,7 +96,7 @@ export function RiskPage() {
       <Panel title="Critical infrastructure exposure" bodyClassName="p-0">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
+            <tr className={TABLE_HEAD}>
               <th className="px-4 py-2.5 font-medium">Facility</th>
               <th className="px-4 py-2.5 font-medium">Type</th>
               <th className="px-4 py-2.5 font-medium">Access road</th>

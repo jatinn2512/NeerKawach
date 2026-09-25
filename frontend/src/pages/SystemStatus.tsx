@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/AppShell";
-import { Metric, Panel, StatusPill } from "@/components/RiskUI";
+import { Metric, MetricStrip, Panel, StatusPill } from "@/components/RiskUI";
 import { useSim } from "@/state/simulation";
 
 export function SystemStatusPage() {
@@ -17,18 +17,18 @@ export function SystemStatusPage() {
   ];
   return (
     <AppShell title="System Status" subtitle="Platform health and recent activity">
-      <div className="grid gap-3 md:grid-cols-4">
+      <MetricStrip className="md:grid-cols-5">
         <Metric label="Platform state" value={sim.health ? "Operational" : sim.dataStatus === "loading" ? "Loading" : "Unavailable"} tone={sim.health ? "low" : "neutral"} />
         <Metric label="Historical rainfall" value={sim.rainfallStatus?.source_name ?? "MOSDAC INSAT-3DR"} sub={selectedRainfall?.product ?? "3RIMG_L2B_IMC"} />
         <Metric label="Current/forecast rainfall" value={currentRainfall?.source_role === "model_forecast" ? `${currentRainfallLabel} · model` : currentRainfallLabel} sub="Precipitation forecast, not radar" />
         <Metric label="Validated runs" value={sim.runs.length} />
         <Metric label="API environment" value={sim.health?.environment ?? "Unavailable"} />
-      </div>
+      </MetricStrip>
 
       <Panel title="Services" bodyClassName="p-0">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
+            <tr className="border-b border-border text-left text-xs text-muted-foreground">
               <th className="px-4 py-2.5 font-medium">Service</th>
               <th className="px-4 py-2.5 font-medium">Status</th>
               <th className="px-4 py-2.5 font-medium">Detail</th>
@@ -51,7 +51,7 @@ export function SystemStatusPage() {
       <Panel title="Recent simulation runs" bodyClassName="p-0">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
+            <tr className="border-b border-border text-left text-xs text-muted-foreground">
               <th className="px-4 py-2.5 font-medium">Run ID</th>
               <th className="px-4 py-2.5 font-medium">Scenario</th>
               <th className="px-4 py-2.5 font-medium">Operator</th>

@@ -29,13 +29,13 @@ export function ReportsPage() {
           </button>
           <button
             onClick={() => toast("Export queued", { description: "PDF export will download when rendering completes." })}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs font-semibold hover:bg-accent"
+            className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-2 text-xs font-semibold hover:bg-accent"
           >
             <FileDown className="size-3.5" /> Export PDF
           </button>
           <button
             onClick={() => toast("Export queued", { description: "GeoJSON + CSV bundle prepared for download." })}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs font-semibold hover:bg-accent"
+            className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-2 text-xs font-semibold hover:bg-accent"
           >
             <Download className="size-3.5" /> Export Data
           </button>
@@ -81,12 +81,12 @@ export function ReportsPage() {
           />
         </div>
 
-        <h3 className="mt-6 text-[12px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+        <h3 className="mt-6 text-xs text-muted-foreground">
           Affected roads
         </h3>
         <table className="mt-2 w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-[11px] tracking-[0.1em] text-muted-foreground uppercase">
+            <tr className="border-b border-border text-left text-xs text-muted-foreground">
               <th className="py-2 font-medium">Segment</th>
               <th className="py-2 font-medium">Category</th>
               <th className="py-2 font-medium">Depth</th>
@@ -106,25 +106,25 @@ export function ReportsPage() {
           </tbody>
         </table>
 
-        <h3 className="mt-6 text-[12px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+        <h3 className="mt-6 text-xs text-muted-foreground">
           Critical infrastructure
         </h3>
         <ul className="mt-2 grid gap-2 md:grid-cols-2">
           {(sim.routeResults.floodAware ? [sim.routeResults.floodAware] : []).map((f) => (
             <li
               key={f.routing_mode}
-              className="flex items-center justify-between gap-3 rounded-md border border-border bg-panel px-3 py-2 text-sm"
+              className="flex items-center justify-between gap-3 rounded-md bg-panel px-3 py-2 text-sm"
             >
               <span>
                 Flood-aware route
                 <span className="block text-xs text-muted-foreground">P8 validated routing result</span>
               </span>
-              <span className="text-xs font-semibold uppercase">{(f.maximum_flood_depth_m * 100).toFixed(1)} cm max depth</span>
+              <span className="text-xs font-semibold">{(f.maximum_flood_depth_m * 100).toFixed(1)} cm max depth</span>
             </li>
           ))}
         </ul>
 
-        <h3 className="mt-6 text-[12px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+        <h3 className="mt-6 text-xs text-muted-foreground">
           Safer route advisory
         </h3>
         <p className="mt-2 text-sm">
@@ -135,7 +135,7 @@ export function ReportsPage() {
       <Panel title="Previous reports" bodyClassName="p-0">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
+            <tr className="border-b border-border text-left text-xs text-muted-foreground">
               <th className="px-4 py-2.5 font-medium">Report ID</th>
               <th className="px-4 py-2.5 font-medium">Scenario</th>
               <th className="px-4 py-2.5 font-medium">Created</th>
@@ -163,7 +163,7 @@ export function ReportsPage() {
 function Section({ title, rows }: { title: string; rows: [string, string][] }) {
   return (
     <div>
-      <h3 className="text-[12px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+      <h3 className="text-xs text-muted-foreground">
         {title}
       </h3>
       <dl className="mt-2 space-y-2 text-sm">

@@ -3,10 +3,24 @@ import { RISK_LABEL, type RiskLevel } from "@/data/pilot";
 import type { ReactNode } from "react";
 
 const riskClasses: Record<RiskLevel, string> = {
-  low: "border-risk-low/40 bg-risk-low/10 text-risk-low",
-  moderate: "border-risk-moderate/40 bg-risk-moderate/10 text-risk-moderate",
-  high: "border-risk-high/40 bg-risk-high/10 text-risk-high",
-  severe: "border-risk-severe/45 bg-risk-severe/15 text-risk-severe",
+  low: "bg-risk-low/12 text-risk-low",
+  moderate: "bg-risk-moderate/12 text-risk-moderate",
+  high: "bg-risk-high/14 text-risk-high",
+  severe: "bg-risk-severe/16 text-risk-severe",
+};
+
+export const riskText: Record<RiskLevel, string> = {
+  low: "text-risk-low",
+  moderate: "text-risk-moderate",
+  high: "text-risk-high",
+  severe: "text-risk-severe",
+};
+
+export const riskBar: Record<RiskLevel, string> = {
+  low: "bg-risk-low",
+  moderate: "bg-risk-moderate",
+  high: "bg-risk-high",
+  severe: "bg-risk-severe",
 };
 
 export function RiskBadge({
@@ -21,7 +35,7 @@ export function RiskBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase",
+        "inline-flex shrink-0 items-center gap-1.5 rounded px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap",
         riskClasses[risk],
         className,
       )}
@@ -33,23 +47,23 @@ export function RiskBadge({
 }
 
 const statusClasses: Record<string, string> = {
-  Operational: "border-status-ok/40 bg-status-ok/10 text-status-ok",
-  Loaded: "border-status-ok/40 bg-status-ok/10 text-status-ok",
-  Available: "border-status-busy/40 bg-status-busy/10 text-status-busy",
-  Processing: "border-status-busy/40 bg-status-busy/10 text-status-busy",
-  Sent: "border-status-ok/40 bg-status-ok/10 text-status-ok",
-  Approved: "border-status-busy/40 bg-status-busy/10 text-status-busy",
-  Draft: "border-border bg-muted text-muted-foreground",
-  Warning: "border-status-warn/40 bg-status-warn/10 text-status-warn",
-  Unavailable: "border-status-down/40 bg-status-down/10 text-status-down",
+  Operational: "bg-status-ok/12 text-status-ok",
+  Loaded: "bg-status-ok/12 text-status-ok",
+  Available: "bg-status-busy/12 text-status-busy",
+  Processing: "bg-status-busy/12 text-status-busy",
+  Sent: "bg-status-ok/12 text-status-ok",
+  Approved: "bg-status-busy/12 text-status-busy",
+  Draft: "bg-muted text-muted-foreground",
+  Warning: "bg-status-warn/12 text-status-warn",
+  Unavailable: "bg-status-down/12 text-status-down",
 };
 
 export function StatusPill({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase",
-        statusClasses[status] ?? "border-border bg-muted text-muted-foreground",
+        "inline-flex shrink-0 items-center gap-1.5 rounded px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap",
+        statusClasses[status] ?? "bg-muted text-muted-foreground",
       )}
     >
       <span className="size-1.5 rounded-full bg-current" />
@@ -72,22 +86,24 @@ export function Panel({
   bodyClassName?: string;
 }) {
   return (
-    <section
-      className={cn(
-        "rounded-md border border-border bg-card shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset]",
-        className,
-      )}
-    >
+    <section className={cn("rounded-lg border border-white/4 bg-card", className)}>
       {title ? (
-        <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
-          <h2 className="text-[12px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-            {title}
-          </h2>
+        <header className="flex items-center justify-between gap-3 px-4 py-3">
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
           {action}
         </header>
       ) : null}
-      <div className={cn("p-4", bodyClassName)}>{children}</div>
+      <div className={cn("px-4 pb-4", !title && "pt-4", bodyClassName)}>{children}</div>
     </section>
+  );
+}
+
+/** One container for a row of metrics — cells are separated by hairlines, not boxed. */
+export function MetricStrip({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cn("grid divide-x divide-white/5 overflow-hidden rounded-lg border border-white/4 bg-card", className)}>
+      {children}
+    </div>
   );
 }
 
@@ -96,32 +112,25 @@ export function Metric({
   value,
   sub,
   tone,
+  className,
 }: {
   label: string;
   value: ReactNode;
   sub?: ReactNode;
   tone?: RiskLevel | "neutral";
+  className?: string;
 }) {
-  const toneClass =
-    tone && tone !== "neutral"
-      ? {
-          low: "text-risk-low",
-          moderate: "text-risk-moderate",
-          high: "text-risk-high",
-          severe: "text-risk-severe",
-        }[tone]
-      : "text-foreground";
+  const toneClass = tone && tone !== "neutral" ? riskText[tone] : "text-foreground";
   return (
-    <div className="rounded-md border border-border bg-card px-4 py-3">
-      <p className="text-[11px] font-medium tracking-[0.12em] text-muted-foreground uppercase">
-        {label}
-      </p>
-      <p className={cn("mt-1.5 text-2xl leading-none font-semibold tabular", toneClass)}>
+    <div className={cn("min-w-0 px-4 py-3", className)}>
+      <p className="truncate text-xs text-muted-foreground">{label}</p>
+      <p className={cn("mt-1 truncate text-xl leading-tight font-semibold tabular", toneClass)}>
         {value}
       </p>
-      {sub ? <p className="mt-1.5 text-xs text-muted-foreground">{sub}</p> : null}
+      {sub ? <p className="mt-0.5 truncate text-xs text-muted-foreground">{sub}</p> : null}
     </div>
   );
 }
 
-
+/** Column header style shared by the data tables. */
+export const TABLE_HEAD = "border-b border-border text-left text-xs text-muted-foreground";

@@ -212,18 +212,109 @@ export const DEMO_CURRENT_RAINFALL_STATUS: RainfallStatus = {
   ],
 };
 
-export const DEMO_ORIGINS = [
-  { id: "bellandur-hospital", label: "Bellandur Community Hospital", coordinates: [12.9312, 77.6742] as LatLng },
-  { id: "st-johns", label: "St. John's Medical Centre", coordinates: [12.9286, 77.6272] as LatLng },
+/* ─── Nearby areas around Bellandur for safe-route selection ─── */
+
+export type NearbyArea = {
+  id: string;
+  label: string;
+  coordinates: LatLng;
+};
+
+export const NEARBY_AREAS: NearbyArea[] = [
+  { id: "bellandur",           label: "Bellandur",             coordinates: [12.9312, 77.6742] },
+  { id: "devarabeesanahalli",  label: "Devarabeesanahalli",    coordinates: [12.9368, 77.6812] },
+  { id: "kadubeesanahalli",    label: "Kadubeesanahalli",      coordinates: [12.9452, 77.6698] },
+  { id: "marathahalli",        label: "Marathahalli",          coordinates: [12.9482, 77.6642] },
+  { id: "doddanekundi",        label: "Doddanekundi",          coordinates: [12.9508, 77.6588] },
+  { id: "agara",               label: "Agara",                 coordinates: [12.9242, 77.6412] },
+  { id: "hsr-layout",          label: "HSR Layout",            coordinates: [12.9118, 77.6528] },
+  { id: "sarjapur",            label: "Sarjapur",              coordinates: [12.9078, 77.6712] },
 ];
 
-export const DEMO_DESTINATIONS = [
-  { id: "hsr-evacuation", label: "HSR Indoor Stadium Evacuation Centre", coordinates: [12.9118, 77.6528] as LatLng },
-  { id: "sarjapur-relief", label: "Sarjapur Ridge Relief Camp", coordinates: [12.9452, 77.6588] as LatLng },
-];
+// Keep old exports for backward compatibility but mark as deprecated.
+export const DEMO_ORIGINS = NEARBY_AREAS;
+export const DEMO_DESTINATIONS = NEARBY_AREAS;
+
+/* ─── Deterministic route generation from origin/destination pair ─── */
+
+/** Simple seeded hash so the same (origin,dest) pair always produces the same route. */
+function pairSeed(a: string, b: string) {
+  let h = 0;
+  for (const c of `${a}→${b}`) h = (Math.imul(31, h) + c.charCodeAt(0)) | 0;
+  return Math.abs(h);
+}
+
+function interpolate(a: LatLng, b: LatLng, steps: number, seed: number): LatLng[] {
+  const pts: LatLng[] = [a];
+  for (let i = 1; i <= steps; i++) {
+    const t = i / (steps + 1);
+    const jitter = ((seed * (i + 7)) % 97) / 97 * 0.006 - 0.003;
+    pts.push([a[0] + (b[0] - a[0]) * t + jitter, a[1] + (b[1] - a[1]) * t - jitter * 0.6]);
+  }
+  pts.push(b);
+  return pts;
+}
 
 function routeGeometry(path: LatLng[]): GeoJson {
   return { type: "Feature", geometry: { type: "LineString", coordinates: path.map(([latitude, longitude]) => [longitude, latitude]) }, properties: {} };
+}
+
+/** Produces a deterministic route response for any area pair. */
+export function generateRouteForPair(
+  origin: NearbyArea,
+  destination: NearbyArea,
+  mode: "baseline" | "flood-aware",
+  timestamp: string,
+): RouteResponse {
+  const seed = pairSeed(origin.id, destination.id);
+  const floodAware = mode === "flood-aware";
+
+  // Deterministic numeric properties from the seed
+  const baseDist = 2.8 + (seed % 60) / 10;    // 2.8 – 8.7 km
+  const distKm = floodAware ? baseDist * 1.2 + 0.8 : baseDist;
+  const travelMin = Math.round(floodAware ? distKm * 3.1 : distKm * 2.7);
+  const maxDepthM = floodAware ? 0.04 + (seed % 20) / 100 : 0.25 + (seed % 50) / 100;
+  const affectedCount = floodAware ? 1 : 2 + (seed % 4);
+  const avoidedSegments = floodAware
+    ? ["Outer Ring Road Bellandur Stretch", "Agara–Iblur Connector", "Iblur Junction Ramp"].slice(0, 1 + seed % 3)
+    : [];
+
+  // Generate a path with slight variation for flood-aware vs baseline
+  const saferOffset: LatLng = floodAware ? [0.003, -0.004] : [0, 0];
+  const pathOrigin: LatLng = origin.coordinates;
+  const pathDest: LatLng = destination.coordinates;
+  const midpoint: LatLng = [
+    (pathOrigin[0] + pathDest[0]) / 2 + saferOffset[0],
+    (pathOrigin[1] + pathDest[1]) / 2 + saferOffset[1],
+  ];
+
+  const path: LatLng[] = [
+    pathOrigin,
+    ...interpolate(pathOrigin, midpoint, 1, seed + (floodAware ? 42 : 0)).slice(1, -1),
+    midpoint,
+    ...interpolate(midpoint, pathDest, 1, seed + (floodAware ? 99 : 17)).slice(1, -1),
+    pathDest,
+  ];
+
+  const via = floodAware
+    ? `Via elevated corridor avoiding ${avoidedSegments.length} flooded segment${avoidedSegments.length > 1 ? "s" : ""}`
+    : `Direct route via ${origin.label}–${destination.label} corridor`;
+
+  return {
+    status: "complete",
+    routing_mode: mode,
+    route_timestamp: timestamp,
+    total_distance_m: Math.round(distKm * 1000),
+    route_cost: distKm,
+    maximum_flood_depth_m: Math.round(maxDepthM * 100) / 100,
+    affected_segments: Array.from({ length: affectedCount }, (_, i) => `${mode}-segment-${i + 1}`),
+    avoided_flooded_segments: avoidedSegments,
+    geometry: routeGeometry(path),
+    source_phase: "P8 flood-safe routing",
+    estimated_travel_time_min: travelMin,
+    route_name: floodAware ? "Safer Route" : "Direct Route",
+    via,
+  };
 }
 
 export const DEMO_ROUTE_RESULTS: Record<"baseline" | "flood-aware", RouteResponse> = {
@@ -271,3 +362,45 @@ export const DEMO_SUMMARY = {
   timestamps: DEMO_TIMELINE.map((point) => point.label),
   maximum_flood_depth: { value_m: DEMO_TIMELINE.at(-1)!.maxDepthCm / 100, timestamp: DEMO_TIMELINE.at(-1)!.label },
 };
+
+/* ─── SMS dispatch abstraction ─── */
+
+export type SmsDispatchResult = {
+  id: string;
+  status: "accepted" | "failed";
+  channel: "sms";
+  recipientCount: number;
+  area: string;
+  severity: string;
+  timestamp: string;
+  providerNote: string;
+};
+
+/**
+ * Dispatch abstraction — currently uses a local presentation adapter.
+ * Replace the body with Twilio/MSG91/etc. to connect a real provider.
+ */
+export async function dispatchAlert(opts: {
+  area: string;
+  severity: string;
+  message: string;
+}): Promise<SmsDispatchResult> {
+  // Simulate network latency
+  await new Promise((r) => setTimeout(r, 900 + Math.random() * 600));
+
+  // Deterministic recipient count based on area string
+  let h = 0;
+  for (const c of opts.area) h = (Math.imul(31, h) + c.charCodeAt(0)) | 0;
+  const recipientCount = 120 + (Math.abs(h) % 180);
+
+  return {
+    id: `ALT-${new Date().getFullYear()}-${String(100 + Math.floor(Math.random() * 900))}`,
+    status: "accepted",
+    channel: "sms",
+    recipientCount,
+    area: opts.area,
+    severity: opts.severity,
+    timestamp: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+    providerNote: "Local presentation adapter — no external SMS provider configured.",
+  };
+}

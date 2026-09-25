@@ -25,7 +25,7 @@ export function DataLayersPage() {
       <Panel title="Dataset inventory" bodyClassName="p-0">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
+            <tr className="border-b border-border text-left text-xs text-muted-foreground">
               <th className="px-4 py-2.5 font-medium">Dataset</th>
               <th className="px-4 py-2.5 font-medium">Status</th>
               <th className="px-4 py-2.5 font-medium">Coverage area</th>
@@ -53,7 +53,7 @@ export function DataLayersPage() {
 
       <Panel title="Rainfall source registry" bodyClassName="p-0">
         <table className="w-full text-sm">
-          <thead><tr className="border-b border-border text-left text-[11px] tracking-[0.12em] text-muted-foreground uppercase"><th className="px-4 py-2.5 font-medium">Source</th><th className="px-4 py-2.5 font-medium">Product</th><th className="px-4 py-2.5 font-medium">Role</th><th className="px-4 py-2.5 font-medium">Status</th><th className="px-4 py-2.5 font-medium">Notes</th></tr></thead>
+          <thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="px-4 py-2.5 font-medium">Source</th><th className="px-4 py-2.5 font-medium">Product</th><th className="px-4 py-2.5 font-medium">Role</th><th className="px-4 py-2.5 font-medium">Status</th><th className="px-4 py-2.5 font-medium">Notes</th></tr></thead>
           <tbody>{DEMO_RAINFALL_SOURCES.map((source) => <tr key={String(source.source_id)} className="border-b border-border/60 last:border-0"><td className="px-4 py-2.5 font-medium">{String(source.source_name)}</td><td className="px-4 py-2.5 text-muted-foreground">{String(source.product)}</td><td className="px-4 py-2.5 text-muted-foreground">{String(source.role)}</td><td className="px-4 py-2.5"><StatusPill status={source.available === false ? "Unavailable" : source.status === "metadata_only" ? "Warning" : "Available"} /></td><td className="px-4 py-2.5 text-muted-foreground">{String(source.detail)}</td></tr>)}</tbody>
         </table>
       </Panel>
@@ -74,7 +74,7 @@ export function DataLayersPage() {
 function Item({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] tracking-[0.12em] text-muted-foreground uppercase">{label}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 font-medium">{value}</p>
     </div>
   );

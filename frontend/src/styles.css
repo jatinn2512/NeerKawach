@@ -76,8 +76,9 @@
   --accent-foreground: #edf7ff;
   --destructive: #ff3c4d;
   --destructive-foreground: #fff5f6;
-  --border: #16415c;
-  --input: #12405b;
+  /* Low-chroma navy lines: structure comes from surface contrast, not outlines. */
+  --border: #15293b;
+  --input: #1d3a52;
   --ring: #43d8ff;
 
   --risk-low: #49d978;
@@ -96,7 +97,7 @@
   --sidebar-primary-foreground: #02101b;
   --sidebar-accent: #09253a;
   --sidebar-accent-foreground: #f2fbff;
-  --sidebar-border: #12364e;
+  --sidebar-border: #10263a;
   --sidebar-ring: #43d8ff;
 }
 
@@ -136,41 +137,82 @@
 
 /* Leaflet dark surface tweaks */
 .leaflet-container {
-  background: #020b15;
+  background: #0b1824;
   font-family: var(--font-sans);
 }
+.leaflet-container:focus:not(:focus-visible),
+.leaflet-interactive:focus {
+  outline: none;
+}
+/* leaflet.css loads later (lazy map chunk), so overrides are scoped under
+   .leaflet-container to win on specificity. */
+/* Esri Dark Gray Canvas is neutral grey; tint it into the FloodOps navy. */
+.fo-basemap {
+  filter: brightness(.68) sepia(.5) hue-rotate(172deg) saturate(2) contrast(1.08);
+}
 .leaflet-control-attribution {
-  background: color-mix(in oklab, var(--panel) 85%, transparent) !important;
-  color: var(--muted-foreground) !important;
+  background: rgba(4, 16, 28, .72) !important;
+  color: #5f7b92 !important;
   font-size: 10px !important;
+  border-top-left-radius: 4px;
 }
 .leaflet-control-attribution a {
-  color: var(--muted-foreground) !important;
+  color: #7892a8 !important;
+}
+.leaflet-touch .leaflet-bar,
+.leaflet-bar {
+  border: 0 !important;
+  border-radius: 6px !important;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .4) !important;
 }
 .leaflet-bar a {
-  background: var(--panel) !important;
+  background: rgba(6, 22, 37, .94) !important;
   color: var(--foreground) !important;
-  border-color: var(--border) !important;
+  border-color: rgba(255, 255, 255, .06) !important;
 }
 .leaflet-bar a:hover {
   background: var(--accent) !important;
 }
+.leaflet-bar a.leaflet-disabled {
+  color: #3b5163 !important;
+}
+.leaflet-container .leaflet-control-scale-line {
+  background: rgba(4, 16, 28, .6);
+  border-color: #6f8aa0;
+  color: #9db4c7;
+  font-size: 10px;
+}
+.leaflet-container .leaflet-tooltip {
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 5px;
+  background: rgba(5, 19, 32, .96);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .45);
+  color: var(--foreground);
+  font-size: 12px;
+}
+.leaflet-container .leaflet-tooltip-top:before { border-top-color: rgba(5, 19, 32, .96); }
+.leaflet-container .leaflet-tooltip-bottom:before { border-bottom-color: rgba(5, 19, 32, .96); }
+.leaflet-container .leaflet-tooltip-left:before { border-left-color: rgba(5, 19, 32, .96); }
+.leaflet-container .leaflet-tooltip-right:before { border-right-color: rgba(5, 19, 32, .96); }
 
 /* Shared shell treatment so authenticated screens use the landing palette. */
 .fo-app-shell {
-  background:
-    radial-gradient(circle at 78% 0%, rgba(0, 140, 220, .08), transparent 28%),
-    var(--background);
-}
-
-.fo-app-shell > aside {
-  box-shadow: 12px 0 32px rgba(0, 0, 0, .14);
+  background: var(--background);
 }
 
 .fo-app-header {
-  border-color: rgba(57, 168, 225, .2) !important;
-  background: rgba(3, 15, 27, .9) !important;
+  border-color: rgba(255, 255, 255, .05) !important;
+  background: rgba(3, 13, 24, .92) !important;
   backdrop-filter: blur(12px);
+}
+
+/* Floating glass panels for map overlays */
+.fo-floating {
+  background: rgba(4, 16, 28, .88);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, .06);
 }
 
 .fo-login-page {
