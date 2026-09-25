@@ -34,6 +34,8 @@ import {
   DEMO_STUDY_AREA,
   DEMO_SUMMARY,
   DEMO_TIMELINE,
+  NEARBY_AREAS,
+  generateRouteForPair,
   timelinePoint,
 } from "@/data/demo";
 import type {
@@ -288,21 +290,39 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
     };
   }, [facilities, roads, scenario.factor, timeline, zones]);
 
+  /** Clear all displayed routes — call before loading a different origin/dest pair. */
+  const clearRoutes = useCallback(() => {
+    setRouteResults({ baseline: null, floodAware: null });
+    setRouteShown(false);
+  }, []);
+
   const requestRoute = useCallback(async (request: RouteRequest) => {
+    // On baseline request (which is always first), wipe old routes so no stale
+    // geometry is visible while the new pair loads.
+    if (request.routing_mode === "baseline") {
+      clearRoutes();
+    }
     setRouteStatus("loading");
     setRouteError(null);
     await new Promise<void>((resolve) => setTimeout(resolve, 250));
-    const result = DEMO_ROUTE_RESULTS[request.routing_mode];
+
+    // Try to match the request coords to a NEARBY_AREAS entry for dynamic routes
+    const findArea = (lat: number, lon: number) =>
+      NEARBY_AREAS.find((a) => Math.abs(a.coordinates[0] - lat) < 0.002 && Math.abs(a.coordinates[1] - lon) < 0.002);
+    const originArea = findArea(request.origin_latitude, request.origin_longitude);
+    const destArea = findArea(request.destination_latitude, request.destination_longitude);
+
+    const result = originArea && destArea
+      ? generateRouteForPair(originArea, destArea, request.routing_mode, request.simulation_timestamp)
+      : { ...DEMO_ROUTE_RESULTS[request.routing_mode], route_timestamp: request.simulation_timestamp };
+
     setRouteResults((current) => ({
       ...current,
-      [request.routing_mode === "baseline" ? "baseline" : "floodAware"]: {
-        ...result,
-        route_timestamp: request.simulation_timestamp,
-      },
+      [request.routing_mode === "baseline" ? "baseline" : "floodAware"]: result,
     }));
     setRouteStatus("ready");
     setRouteShown(true);
-  }, []);
+  }, [clearRoutes]);
 
   const value: SimContextValue = {
     operator: { name: operatorName, id: "OPR-KA-0142", role: "Disaster Management Operator" },

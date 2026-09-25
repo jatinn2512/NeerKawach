@@ -1,5 +1,5 @@
 import { RouteLink } from "@/utils/router";
-import { ArrowRight, Waves } from "lucide-react";
+import { ArrowRight, CloudRain, Waves } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { DepthLegend } from "@/components/DepthLegend";
 import { MapSurface } from "@/components/MapSurface";
@@ -23,7 +23,6 @@ export function DashboardPage() {
     .sort((a, b) => (b.depth ?? 0) - (a.depth ?? 0));
   const alerts = affected.slice(0, 4);
   const zones = [...sim.zones].sort((a, b) => b.depthCm - a.depthCm);
-  const simState = sim.status === "running" ? "Processing" : sim.status === "complete" ? "Complete" : "Ready";
 
   return (
     <AppShell
@@ -39,6 +38,7 @@ export function DashboardPage() {
         </RouteLink>
       }
     >
+      {/* Top metrics — less bordered, cleaner hairlines */}
       <MetricStrip className="shrink-0 grid-cols-2 md:grid-cols-3 xl:grid-cols-[1.3fr_repeat(5,minmax(0,1fr))]">
         <div className="relative min-w-0 py-3 pr-4 pl-5">
           <span className={cn("absolute inset-y-0 left-0 w-1", sim.summary ? riskBar[m.overallRisk] : "bg-muted")} />
@@ -55,14 +55,15 @@ export function DashboardPage() {
         <Metric label="Critical locations" value={m.criticalAtRisk} sub="Facilities with affected access" />
       </MetricStrip>
 
-      <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_360px]">
+        {/* Map panel */}
         <Panel
           className="flex min-h-115 flex-col overflow-hidden"
           title={
-            <span className="flex items-center gap-3">
+            <span className="flex items-center gap-2">
               Current situation
               <span className="text-xs font-normal text-muted-foreground">
-                Simulation {simState.toLowerCase()} · {sim.status === "complete" ? `flood result at T+${m.clock}` : "extreme rainfall scenario configured"}
+                {sim.status === "complete" ? `T+${m.clock} flood state` : "monitoring"}
               </span>
             </span>
           }
@@ -77,60 +78,63 @@ export function DashboardPage() {
           <DepthLegend className="absolute top-3 left-3 z-1000" />
         </Panel>
 
-        <div className="flex min-h-0 flex-col gap-4">
-          <Panel
-            className="flex min-h-0 flex-col xl:flex-1"
-            title={
-              <span className="flex items-center gap-2">
+        {/* Right column — simulation control panel */}
+        <div className="flex min-h-0 flex-col gap-3">
+          {/* Active alerts */}
+          <div className="flex min-h-0 flex-col flex-1 rounded-lg border border-white/4 bg-card">
+            <header className="flex items-center justify-between gap-3 px-4 py-2.5">
+              <h2 className="flex items-center gap-2 text-sm font-semibold">
                 Active alerts
-                {affected.length ? <span className="rounded bg-risk-severe/15 px-1.5 text-[11px] font-semibold text-risk-severe tabular">{affected.length}</span> : null}
-              </span>
-            }
-            action={
+                {affected.length > 0 && (
+                  <span className="rounded bg-risk-severe/15 px-1.5 text-[11px] font-semibold text-risk-severe tabular">{affected.length}</span>
+                )}
+              </h2>
               <RouteLink to="/risk" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
                 All alerts <ArrowRight className="size-3.5" />
               </RouteLink>
-            }
-            bodyClassName="min-h-0 flex-1 overflow-y-auto"
-          >
-            <ul className="space-y-1">
-              {alerts.length === 0 ? (
-                <li className="py-1 text-sm text-muted-foreground">
-                  No high-risk conditions at the current simulation time.
-                </li>
-              ) : (
-                alerts.map((a) => (
-                  <li key={a.id} className="flex items-stretch gap-3 rounded-md bg-panel/70 py-2 pr-2.5">
-                    <span className={cn("w-0.5 shrink-0 rounded-full", riskBar[a.risk])} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{a.title}</p>
-                      <p className="text-xs text-muted-foreground tabular">
-                        Flood depth {a.depth == null ? "—" : `${a.depth.toFixed(0)} cm`} · road access
-                      </p>
-                    </div>
-                    <RiskBadge risk={a.risk} label={RISK_LABEL[a.risk]} className="self-center" />
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
+              <ul className="space-y-1">
+                {alerts.length === 0 ? (
+                  <li className="py-1 text-sm text-muted-foreground">
+                    No high-risk conditions at the current simulation time.
                   </li>
-                ))
-              )}
-              {affected.length > alerts.length ? (
-                <li className="px-3 pt-1 text-xs text-muted-foreground">
-                  +{affected.length - alerts.length} more affected road segments
-                </li>
-              ) : null}
-            </ul>
-            <div className="mt-3 flex items-start gap-2.5 border-t border-border pt-3">
-              <Waves className={cn("mt-0.5 size-4 shrink-0", sim.status === "complete" ? "text-risk-high" : "text-primary")} />
-              <div>
-                <p className="text-sm font-medium">{sim.status === "complete" ? "Bellandur lake spillover channel above threshold" : "Rainfall event is being monitored"}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {sim.status === "complete" ? "Drainage capacity exceeded in Ward 04 — rapid accumulation in the low-lying basin." : "Run the simulation to project runoff, flood depth and road access."}
-                </p>
+                ) : (
+                  alerts.map((a) => (
+                    <li key={a.id} className="flex items-stretch gap-3 rounded-md bg-panel/70 py-2 pr-2.5">
+                      <span className={cn("w-0.5 shrink-0 rounded-full", riskBar[a.risk])} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{a.title}</p>
+                        <p className="text-xs text-muted-foreground tabular">
+                          Flood depth {a.depth == null ? "—" : `${a.depth.toFixed(0)} cm`} · road access
+                        </p>
+                      </div>
+                      <RiskBadge risk={a.risk} label={RISK_LABEL[a.risk]} className="self-center" />
+                    </li>
+                  ))
+                )}
+                {affected.length > alerts.length ? (
+                  <li className="px-3 pt-1 text-xs text-muted-foreground">
+                    +{affected.length - alerts.length} more affected road segments
+                  </li>
+                ) : null}
+              </ul>
+              <div className="mt-3 flex items-start gap-2.5 border-t border-border pt-3">
+                <Waves className={cn("mt-0.5 size-4 shrink-0", sim.status === "complete" ? "text-risk-high" : "text-primary")} />
+                <div>
+                  <p className="text-sm font-medium">{sim.status === "complete" ? "Bellandur lake spillover channel above threshold" : "Rainfall event is being monitored"}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {sim.status === "complete" ? "Drainage capacity exceeded in Ward 04 — rapid accumulation in the low-lying basin." : "Run the simulation to project runoff, flood depth and road access."}
+                  </p>
+                </div>
               </div>
             </div>
-          </Panel>
+          </div>
 
-          <Panel title="Zone risk board" className="shrink-0">
-            <ul className="space-y-2">
+          {/* Zone risk board — compact */}
+          <div className="shrink-0 rounded-lg border border-white/4 bg-card px-4 py-3">
+            <h2 className="text-sm font-semibold">Zone risk board</h2>
+            <ul className="mt-2 space-y-1.5">
               {zones.map((z) => (
                 <li key={z.id} className="grid grid-cols-[minmax(0,1fr)_64px_44px] items-center gap-3 text-sm">
                   <p className="truncate">
@@ -143,14 +147,22 @@ export function DashboardPage() {
                 </li>
               ))}
             </ul>
-          </Panel>
+          </div>
 
-          <Panel title="Rainfall event" className="shrink-0" action={<StatusPill status={sim.status === "running" ? "Processing" : sim.status === "complete" ? "Available" : "Draft"} />}>
-            <dl className="space-y-1.5 text-sm">
+          {/* Rainfall event — compact summary row */}
+          <div className="shrink-0 rounded-lg border border-white/4 bg-card px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="flex items-center gap-2 text-sm font-semibold">
+                <CloudRain className="size-3.5 text-primary" />
+                Rainfall event
+              </h2>
+              <StatusPill status={sim.status === "running" ? "Processing" : sim.status === "complete" ? "Available" : "Draft"} />
+            </div>
+            <dl className="mt-2 space-y-1 text-sm">
               {[
                 ["Event", "Extreme monsoon storm"],
-                ["Rainfall source", "Open-Meteo precipitation forecast"],
-                ["Simulation time", `T+${m.clock}`],
+                ["Source", "Open-Meteo precipitation forecast"],
+                ["Time", `T+${m.clock}`],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-start justify-between gap-4">
                   <dt className="text-muted-foreground">{k}</dt>
@@ -158,7 +170,7 @@ export function DashboardPage() {
                 </div>
               ))}
             </dl>
-          </Panel>
+          </div>
         </div>
       </div>
     </AppShell>

@@ -208,6 +208,13 @@
   backdrop-filter: blur(12px);
 }
 
+/* Floating glass panels for map overlays */
+.fo-floating {
+  background: rgba(4, 16, 28, .88);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, .06);
+}
+
 .fo-login-page {
   background:
     radial-gradient(circle at 78% 38%, rgba(0, 140, 220, .08), transparent 32%),
