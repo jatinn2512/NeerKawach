@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * FloodOps design system — government flood operations control center.
+ * Neer Kawach design system — government flood operations control center.
  * Dark, low-glare operational surfaces; a single cyan command accent; and a
  * strict four-step flood risk scale used ONLY for risk / depth semantics.
  */
@@ -147,7 +147,7 @@
 }
 /* leaflet.css loads later (lazy map chunk), so overrides are scoped under
    .leaflet-container to win on specificity. */
-/* Esri Dark Gray Canvas is neutral grey; tint it into the FloodOps navy. */
+/* Esri Dark Gray Canvas is neutral grey; tint it into the Neer Kawach navy. */
 .fo-basemap {
   filter: brightness(.68) sepia(.5) hue-rotate(172deg) saturate(2) contrast(1.08);
 }
@@ -231,7 +231,7 @@
   background: rgba(2, 13, 24, .48);
 }
 
-/* Public FloodOps landing page */
+/* Public Neer Kawach landing page */
 .fo-home {
   --fo-bg: #020d18;
   --fo-panel: #061a2b;

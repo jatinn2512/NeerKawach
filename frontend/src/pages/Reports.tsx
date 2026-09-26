@@ -47,7 +47,7 @@ export function ReportsPage() {
           <div>
             <h2 className="text-base font-semibold">Flood Simulation Summary Report</h2>
             <p className="text-xs text-muted-foreground">
-              Issued by FloodOps · District Disaster Management Authority
+              Issued by Neer Kawach · District Disaster Management Authority
             </p>
           </div>
           <StatusPill status="Draft" />

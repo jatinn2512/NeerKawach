@@ -1,5 +1,5 @@
 {
-  "model_name": "FloodOps P7 flood inundation and street impact products",
+  "model_name": "Neer Kawach P7 flood inundation and street impact products",
   "source_phase": "P6",
   "source_depth_directory": "data/coupling/results/coupled_surface_depth",
   "source_max_depth_raster": "data/coupling/results/coupled_max_depth.tif",

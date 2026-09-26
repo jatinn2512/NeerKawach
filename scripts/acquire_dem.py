@@ -68,7 +68,7 @@ def main() -> None:
     RAW_PATH.parent.mkdir(parents=True, exist_ok=True)
     METADATA_PATH.parent.mkdir(parents=True, exist_ok=True)
     if args.force or not RAW_PATH.exists():
-        request = urllib.request.Request(URL, headers={"User-Agent": "FloodOps-P1/1.0"})
+        request = urllib.request.Request(URL, headers={"User-Agent": "Neer Kawach-P1/1.0"})
         with urllib.request.urlopen(request, timeout=120) as response, RAW_PATH.open("wb") as handle:
             handle.write(response.read())
     rows, cols, nodata_count, minimum, maximum, study_range = inspect_hgt(RAW_PATH, area["bbox"])

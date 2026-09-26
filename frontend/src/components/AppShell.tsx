@@ -90,7 +90,7 @@ export function AppShell({
               </span>
               <div className="min-w-0 flex-1 leading-tight">
                 <p className="text-sm font-semibold tracking-wide text-sidebar-foreground">
-                  FloodOps
+                  Neer Kawach
                 </p>
                 <p className="text-[11px] text-muted-foreground">
                   Flood decision support

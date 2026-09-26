@@ -1,1 +1,1 @@
-"""Read-only adapters for validated FloodOps phase outputs."""
+"""Read-only adapters for validated Neer Kawach phase outputs."""

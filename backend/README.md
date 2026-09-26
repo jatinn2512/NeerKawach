@@ -1,6 +1,6 @@
-# FloodOps backend
+# Neer Kawach backend
 
-This is the FastAPI service for FloodOps. Run it from this
+This is the FastAPI service for Neer Kawach. Run it from this
 directory with:
 
 ```powershell

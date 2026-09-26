@@ -1,5 +1,5 @@
 {
-  "model_name": "FloodOps P8 flood-safe dynamic routing",
+  "model_name": "Neer Kawach P8 flood-safe dynamic routing",
   "source_phase": "P8",
   "study_area_config": "config/study_area.json",
   "source_road_graph": "data/roads/processed/bellandur_roads.graphml",

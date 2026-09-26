@@ -1,4 +1,4 @@
-"""P9 API endpoints exposing validated, precomputed FloodOps products."""
+"""P9 API endpoints exposing validated, precomputed Neer Kawach products."""
 
 from __future__ import annotations
 

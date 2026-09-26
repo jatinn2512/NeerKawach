@@ -29,7 +29,7 @@ X0, Y0, STEP = 50.0, -30.0, 0.25
 
 
 def fetch_bytes(url: str, data: bytes | None = None) -> bytes:
-    request = urllib.request.Request(url, data=data, headers={"User-Agent": "FloodOps-P1/1.0"})
+    request = urllib.request.Request(url, data=data, headers={"User-Agent": "Neer Kawach-P1/1.0"})
     with urllib.request.urlopen(request, timeout=180) as response:
         return response.read()
 

@@ -18,7 +18,7 @@ def p8_module() -> Any:
     path = ROOT / "scripts" / "data" / "route_flood_safe.py"
     if not path.exists():
         raise HTTPException(status_code=503, detail={"error": "product_unavailable", "message": "P8 routing implementation is unavailable."})
-    spec = importlib.util.spec_from_file_location("floodops_p8_routing", path)
+    spec = importlib.util.spec_from_file_location("Neer Kawach_p8_routing", path)
     if spec is None or spec.loader is None:
         raise HTTPException(status_code=503, detail={"error": "product_unavailable", "message": "P8 routing implementation cannot be loaded."})
     module = importlib.util.module_from_spec(spec)

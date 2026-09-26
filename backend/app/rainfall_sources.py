@@ -109,7 +109,7 @@ class _JSONClient:
         try:
             for attempt in range(self.retries + 1):
                 try:
-                    response = client.get(url, params=params, headers={"User-Agent": "FloodOps-rainfall/1.0"})
+                    response = client.get(url, params=params, headers={"User-Agent": "Neer Kawach-rainfall/1.0"})
                     if response.status_code in {408, 425, 429} or response.status_code >= 500:
                         response.raise_for_status()
                     response.raise_for_status()

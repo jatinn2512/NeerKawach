@@ -121,7 +121,7 @@ export function PublicAlertsPage() {
                 SMS preview
               </div>
               <p className="mt-2 text-xs leading-relaxed text-foreground/80">
-                [{severity.toUpperCase()}] FloodOps — {area}: {message.slice(0, 160)}{message.length > 160 ? "…" : ""}
+                [{severity.toUpperCase()}] Neer Kawach — {area}: {message.slice(0, 160)}{message.length > 160 ? "…" : ""}
               </p>
             </div>
 

@@ -1,4 +1,4 @@
-"""Pydantic contracts for the initial FloodOps API foundation.
+"""Pydantic contracts for the initial Neer Kawach API foundation.
 
 These models intentionally describe mock/sample payloads only. They are small
 contracts that can be extended when real model outputs are introduced.

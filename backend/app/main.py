@@ -1,4 +1,4 @@
-"""FastAPI entry point for the initial FloodOps backend foundation."""
+"""FastAPI entry point for the initial Neer Kawach backend foundation."""
 
 import logging
 from contextlib import asynccontextmanager
@@ -12,7 +12,7 @@ from app.api import drainage, flood, integration, route, storms
 from app.config import get_settings
 from app.schemas import HealthResponse
 
-logger = logging.getLogger("floodops")
+logger = logging.getLogger("Neer Kawach")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 
@@ -28,7 +28,7 @@ def create_app() -> FastAPI:
     application = FastAPI(
         title=settings.app_name,
         version="0.1.0",
-        description="FloodOps integration API. P9 endpoints serve only existing validated outputs.",
+        description="Neer Kawach integration API. P9 endpoints serve only existing validated outputs.",
         lifespan=lifespan,
     )
     application.add_middleware(
@@ -59,7 +59,7 @@ def create_app() -> FastAPI:
         return HealthResponse(
             service=settings.app_name,
             environment=settings.app_env,
-            message="FloodOps backend is running.",
+            message="Neer Kawach backend is running.",
         )
 
     application.include_router(flood.router)

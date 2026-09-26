@@ -10,7 +10,7 @@ import {
 import { useSim } from "@/state/simulation";
 import { navigate } from "@/utils/router";
 
-const FLOOD_MAP_IMAGE = "/floodops-landing-page.png";
+const FLOOD_MAP_IMAGE = "/neerkawach-landing-page.png";
 
 const FEATURES = [
   {
@@ -54,7 +54,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
       </div>
       <div>
         <p className={compact ? "fo-brand-name fo-brand-name--compact" : "fo-brand-name"}>
-          FLOOD<span>OPS</span>
+          NEER<span>KAWACH </span>
         </p>
         <p className="fo-brand-tagline">Flood Monitoring &amp; Response Platform</p>
       </div>
@@ -69,7 +69,7 @@ export function HomePage() {
   return (
     <div className="fo-home">
       <header className="fo-navbar">
-        <a className="fo-brand-link" href="#top" aria-label="FloodOps home">
+        <a className="fo-brand-link" href="#top" aria-label="Neer Kawach home">
           <Brand />
         </a>
 
@@ -89,7 +89,7 @@ export function HomePage() {
         <section className="fo-hero">
           <div className="fo-hero-copy">
             <p className="fo-eyebrow">URBAN FLOOD INTELLIGENCE</p>
-            <h1 className="fo-hero-logo">FLOOD<span>OPS</span><i aria-hidden="true" /></h1>
+            <h1 className="fo-hero-logo">NEER<span>KAWACH</span></h1>
             <h2>
               Predict Flood Risk.
               <br />

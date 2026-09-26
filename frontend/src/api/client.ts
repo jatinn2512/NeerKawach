@@ -21,7 +21,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     const detail = typeof payload === "object" && payload && "detail" in payload
       ? JSON.stringify(payload.detail)
       : `HTTP ${response.status}`;
-    throw new ApiError(`FloodOps API request failed: ${detail}`, response.status, payload);
+    throw new ApiError(`Neer Kawach API request failed: ${detail}`, response.status, payload);
   }
   return payload as T;
 }

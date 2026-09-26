@@ -7,7 +7,7 @@ client = TestClient(app)
 
 
 def test_application_import_and_startup() -> None:
-    assert app.title == "FloodOps API"
+    assert app.title == "Neer Kawach API"
     with TestClient(app) as started_client:
         assert started_client.get("/health").status_code == 200
 
@@ -17,7 +17,7 @@ def test_health() -> None:
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
-    assert response.json()["message"] == "FloodOps backend is running."
+    assert response.json()["message"] == "Neer Kawach backend is running."
 
 
 def test_flood_map() -> None:

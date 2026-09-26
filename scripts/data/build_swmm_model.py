@@ -297,7 +297,7 @@ def build_model() -> dict:
     junctions = [nodes[node_id] for node_id in simulated_node_ids if node_id != outfall_id]
     subcatchments, coverage, subcatchment_geojson = make_subcatchments(area, nodes, [node["node_id"] for node in junctions], assumptions, component_by_node)
     lines = [
-        "; FloodOps P5 maximum defensible P4 network — generated, not observed BBMP infrastructure",
+        "; Neer Kawach P5 maximum defensible P4 network — generated, not observed BBMP infrastructure",
         "; All valid P4 linked components are retained; no inter-component links are fabricated.",
         "; Closed terminal junction boundaries and hydraulic parameters are model_assumption values.",
         "[TITLE]",

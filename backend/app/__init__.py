@@ -1,1 +1,1 @@
-"""FloodOps backend application package."""
+"""Neer Kawach backend application package."""

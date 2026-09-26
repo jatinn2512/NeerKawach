@@ -114,7 +114,7 @@ def download_overpass(area_bbox: tuple[float, float, float, float]) -> dict:
         request = urllib.request.Request(
             endpoint,
             data=payload,
-            headers={"User-Agent": "FloodOps-P4/1.0 (SIH prototype; drainage foundation)"},
+            headers={"User-Agent": "Neer Kawach-P4/1.0 (SIH prototype; drainage foundation)"},
         )
         try:
             with urllib.request.urlopen(request, timeout=180) as response:
@@ -663,7 +663,7 @@ def main() -> None:
         "sources_investigated": [
             {"source": "government_dataset", "provider": "BBMP/KSRSAC via OpenCity.in", "url": "https://data.opencity.in/dataset/bengaluru-stormwater-drains-maps", "raw_file": str(GOVERNMENT_KML.relative_to(ROOT)).replace("\\", "/"), "classification": "observed government dataset", "license": "Public Domain as listed by OpenCity.in", "notes": "Combined 2022 primary/secondary/tertiary stormwater-drain KML; clipped to Bellandur."},
             {"source": "observed_osm", "provider": "OpenStreetMap contributors via Overpass API", "url": "https://www.openstreetmap.org/copyright", "overpass_url": OVERPASS_URL, "raw_file": str(OSM_RAW.relative_to(ROOT)).replace("\\", "/"), "classification": "observed open mapping data", "license": "ODbL; attribution required", "notes": "Waterway/drain/culvert ways and mapped manhole/inlet-like nodes."},
-            {"source": "terrain_inferred", "provider": "FloodOps P2 terrain derivatives", "inputs": ["data/dem/terrain/flow_accumulation.tif", "data/dem/processed/bellandur_dem_buffered.tif"], "classification": "inferred candidate only", "notes": "Spaced high-flow-accumulation cells; not asserted to be real inlets or manholes."},
+            {"source": "terrain_inferred", "provider": "Neer Kawach P2 terrain derivatives", "inputs": ["data/dem/terrain/flow_accumulation.tif", "data/dem/processed/bellandur_dem_buffered.tif"], "classification": "inferred candidate only", "notes": "Spaced high-flow-accumulation cells; not asserted to be real inlets or manholes."},
         ],
         "acquisition_counts": acquisition_counts,
         "outputs": {"nodes": str(NODES_GEOJSON.relative_to(ROOT)).replace("\\", "/"), "links": str(LINKS_GEOJSON.relative_to(ROOT)).replace("\\", "/"), "graphml": str(GRAPHML_PATH.relative_to(ROOT)).replace("\\", "/"), "surface_connections": str(CONNECTIONS_GEOJSON.relative_to(ROOT)).replace("\\", "/"), "qa_preview": str(PREVIEW_GEOJSON.relative_to(ROOT)).replace("\\", "/")},

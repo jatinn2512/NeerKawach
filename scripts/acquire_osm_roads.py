@@ -35,7 +35,7 @@ def get_json(query_text: str) -> dict:
     request = urllib.request.Request(
         OVERPASS_URL,
         data=payload,
-        headers={"User-Agent": "FloodOps-P1/1.0 (SIH prototype)"},
+        headers={"User-Agent": "Neer Kawach-P1/1.0 (SIH prototype)"},
     )
     with urllib.request.urlopen(request, timeout=180) as response:
         return json.load(response)

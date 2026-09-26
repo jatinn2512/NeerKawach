@@ -155,14 +155,14 @@ export const DEMO_STUDY_AREA: StudyArea = {
 
 export const DEMO_HEALTH: HealthResponse = {
   status: "ok",
-  service: "FloodOps API",
+  service: "Neer Kawach API",
   environment: "pilot",
-  message: "FloodOps services operational",
+  message: "Neer Kawach services operational",
 };
 
 export const DEMO_API_STATUS: ApiStatus = {
   api_status: "ok",
-  project_name: "FloodOps",
+  project_name: "Neer Kawach",
   study_area: REGION.area,
   available_data_products: { p6: true, p7: true, p8: true },
   routing_capability: "Flood-aware routing available",

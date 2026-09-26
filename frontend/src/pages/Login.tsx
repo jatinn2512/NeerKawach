@@ -23,7 +23,7 @@ export function LoginPage() {
             <Waves className="size-6" />
           </span>
           <div>
-            <p className="text-lg font-semibold tracking-tight">FloodOps</p>
+            <p className="text-lg font-semibold tracking-tight">Neer Kawach</p>
             <p className="text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
               Flood Decision Support System
             </p>
@@ -74,7 +74,7 @@ export function LoginPage() {
             <span className="flex size-10 items-center justify-center rounded-md bg-primary/15 text-primary">
               <Waves className="size-5" />
             </span>
-            <p className="text-lg font-semibold">FloodOps</p>
+            <p className="text-lg font-semibold">Neer Kawach</p>
           </div>
 
           <h2 className="text-xl font-semibold tracking-tight">Operator sign in</h2>
@@ -134,7 +134,7 @@ export function LoginPage() {
             </p>
           </div>
           <RouteLink to="/" className="mt-5 block text-center text-xs text-muted-foreground hover:text-primary">
-            ← Back to FloodOps landing page
+            ← Back to Neer Kawach landing page
           </RouteLink>
         </div>
       </div>

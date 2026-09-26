@@ -9,7 +9,7 @@ not start P6.
 ### Open-Meteo
 
 Open-Meteo provides numerical weather-model precipitation forecasts through a
-public JSON API. FloodOps requests one deterministic point at the centroid of
+public JSON API. Neer Kawach requests one deterministic point at the centroid of
 the canonical `config/study_area.json` bbox. The returned model-grid
 coordinate, hourly timestamps, units, and forecast metadata are preserved. The
 adapter normalizes hourly precipitation into the existing provider-neutral
@@ -25,7 +25,7 @@ The request does not create a finer grid than Open-Meteo's returned model cell.
 ### RainViewer
 
 RainViewer provides a public radar observation timeline and web-map tile
-references. FloodOps stores the raw timeline and creates recent past-frame
+references. Neer Kawach stores the raw timeline and creates recent past-frame
 references centered on Bellandur. It does not download tiles by default and
 does not convert rendered radar imagery into `rainfall_mm` or mm/h values.
 

@@ -1,8 +1,8 @@
-# FloodOps
+# Neer Kawach
 
 > **Urban Flood Nowcasting & Safe-Route System**
 
-FloodOps is an urban flood intelligence platform designed around a complete decision-support pipeline:
+Neer Kawach is an urban flood intelligence platform designed around a complete decision-support pipeline:
 
 **Rainfall / Nowcast → Terrain → Surface Water Movement → Drainage Network → Hydraulic Simulation → Street-Level Flood Depth → Flood-Aware Routing → GIS Dashboard**
 
@@ -64,7 +64,7 @@ The project is being developed around **SIH 2026 Problem Statement 26085** and f
 
 # 1. Project Overview
 
-FloodOps is conceived as a **short-horizon urban flood nowcasting and safe-route decision-support system**.
+Neer Kawach is conceived as a **short-horizon urban flood nowcasting and safe-route decision-support system**.
 
 The system connects several traditionally separate layers of urban flood analysis into one workflow:
 
@@ -113,7 +113,7 @@ within a single workflow.
 
 # 3. Proposed Solution
 
-FloodOps combines geospatial processing, short-horizon rainfall nowcasting, surface-flow reasoning, drainage-network simulation, and flood-aware routing.
+Neer Kawach combines geospatial processing, short-horizon rainfall nowcasting, surface-flow reasoning, drainage-network simulation, and flood-aware routing.
 
 The system is intended to provide:
 
@@ -134,7 +134,7 @@ The primary objective is to answer a practical question:
 
 > **Given current/forecast rainfall and an urban area, which roads are likely to become hazardous over the next few hours, and what safer route can be used instead?**
 
-FloodOps therefore prioritizes an end-to-end chain rather than isolated prediction outputs.
+Neer Kawach therefore prioritizes an end-to-end chain rather than isolated prediction outputs.
 
 ---
 
@@ -282,7 +282,7 @@ Responsible for:
 
 # 8. Core Modules
 
-A mature implementation of FloodOps is expected to contain the following logical modules:
+A mature implementation of Neer Kawach is expected to contain the following logical modules:
 
 ```text
 modules/
@@ -303,7 +303,7 @@ The actual repository layout may differ because implementation folders should fo
 
 # 9. Rainfall Nowcasting
 
-FloodOps includes a short-range rainfall nowcasting layer intended to estimate rainfall evolution over the next **0–3 hours**.
+Neer Kawach includes a short-range rainfall nowcasting layer intended to estimate rainfall evolution over the next **0–3 hours**.
 
 A candidate implementation uses **pySTEPS** where suitable input data are available.
 
@@ -422,7 +422,7 @@ This is where the system attempts to identify:
 
 # 13. Hydraulic Simulation
 
-FloodOps uses **EPA SWMM / PySWMM** as the primary hydraulic-simulation concept discussed for drainage behaviour.
+Neer Kawach uses **EPA SWMM / PySWMM** as the primary hydraulic-simulation concept discussed for drainage behaviour.
 
 SWMM is used to represent:
 
@@ -494,7 +494,7 @@ The exact spatial interpolation/mapping method should be documented alongside th
 
 # 15. Flood-Safe Routing
 
-FloodOps extends flood mapping into an actionable route recommendation layer.
+Neer Kawach extends flood mapping into an actionable route recommendation layer.
 
 Instead of treating every road equally, each road segment can be assigned a flood-risk or passability condition derived from the flood model.
 
@@ -632,7 +632,7 @@ The repository should maintain a clean separation between the application layers
 A recommended high-level structure is:
 
 ```text
-FloodOps/
+Neer Kawach/
 ├── frontend/
 │   ├── src/
 │   ├── public/
@@ -723,7 +723,7 @@ The complete logical data flow is:
                                       │
                                       ▼
                              ┌─────────────────┐
-                             │ FloodOps UI/API │
+                             │ Neer Kawach UI/API │
                              └─────────────────┘
 ```
 
@@ -1230,7 +1230,7 @@ Any quantitative validation claim should be accompanied by:
 
 # 35. Known Limitations
 
-FloodOps is a decision-support prototype and should not be presented as a perfect representation of real-world urban hydrology.
+Neer Kawach is a decision-support prototype and should not be presented as a perfect representation of real-world urban hydrology.
 
 Potential limitations include:
 
@@ -1295,7 +1295,7 @@ The implementation should clearly label the difference between:
 
 # 37. Security and Reliability Considerations
 
-Although FloodOps is primarily a geospatial/modeling application, standard application-security practices still apply.
+Although Neer Kawach is primarily a geospatial/modeling application, standard application-security practices still apply.
 
 ## Secrets
 
@@ -1438,7 +1438,7 @@ docs/
 A final project README can later embed images here, for example:
 
 ```markdown
-![FloodOps Dashboard](docs/demo/dashboard.png)
+![Neer Kawach Dashboard](docs/demo/dashboard.png)
 ```
 
 Recommended visual sequence:
@@ -1477,9 +1477,9 @@ Where a model or algorithm has known assumptions, document the relevant referenc
 
 # 43. Team
 
-## FloodOps Team
+## Neer Kawach Team
 
-**Project:** FloodOps  
+**Project:** Neer Kawach  
 **Problem Statement:** SIH 2026 PS 26085  
 **Domain:** Urban Flood Intelligence / GIS / Hydraulic Modelling / Routing
 
@@ -1516,7 +1516,7 @@ Do not add a license that imposes obligations the team has not reviewed.
 
 # 45. Disclaimer
 
-FloodOps is a prototype/research-oriented decision-support system.
+Neer Kawach is a prototype/research-oriented decision-support system.
 
 Its outputs depend on the quality and resolution of:
 
@@ -1535,7 +1535,7 @@ Any public deployment should undergo substantially stronger validation, calibrat
 
 ## Project Philosophy
 
-FloodOps is built around a simple engineering principle:
+Neer Kawach is built around a simple engineering principle:
 
 > **Do not stop at prediction. Turn prediction into an actionable decision.**
 
@@ -1545,7 +1545,7 @@ A flood map alone is not enough.
 
 A route planner alone is not enough.
 
-FloodOps connects all three through an interpretable pipeline:
+Neer Kawach connects all three through an interpretable pipeline:
 
 ```text
 Rainfall

@@ -1,4 +1,4 @@
-// FloodOps — preconfigured pilot geospatial dataset (mock).
+// Neer Kawach — preconfigured pilot geospatial dataset (mock).
 // Structured so each export can later be replaced by an API call to the
 // real GIS / simulation backend without touching UI components.
 

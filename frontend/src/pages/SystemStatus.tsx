@@ -65,7 +65,7 @@ export function SystemStatusPage() {
               <tr key={`${r.phase}-${index}`} className="border-b border-border/60 last:border-0">
                 <td className="px-4 py-2.5 font-medium tabular">{`${r.phase}-${index + 1}`}</td>
                 <td className="px-4 py-2.5 text-muted-foreground">{r.product}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">FloodOps API</td>
+                <td className="px-4 py-2.5 text-muted-foreground">Neer Kawach API</td>
                 <td className="px-4 py-2.5 text-muted-foreground tabular">{r.generated_at_utc ?? "—"}</td>
                 <td className="px-4 py-2.5 tabular">{r.timestamps.length} timestamp(s)</td>
                 <td className="px-4 py-2.5">
