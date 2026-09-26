@@ -1,13 +1,23 @@
-import { CheckCircle2, Info, Navigation } from "lucide-react";
+import { CheckCircle2, Info, Layers, Map as MapIcon, Navigation, Satellite, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DepthLegend } from "@/components/DepthLegend";
 import { MapSurface } from "@/components/MapSurface";
 import { Panel, RiskBadge, riskText } from "@/components/RiskUI";
+import { DEFAULT_LAYERS, type MapLayers } from "@/components/map-layers";
 import { NEARBY_AREAS, generateRouteForPair, type NearbyArea } from "@/data/demo";
 import { depthToRisk } from "@/data/pilot";
 import { useSim } from "@/state/simulation";
 import { cn } from "@/lib/utils";
+
+const LAYER_LABELS: { key: keyof MapLayers; label: string; color: string; shape: "circle" | "square" }[] = [
+  { key: "floodRisk", label: "Flood risk zones", color: "#ff7a45", shape: "square" },
+  { key: "floodDepth", label: "Flood depth shading", color: "#3fa9f5", shape: "square" },
+  { key: "roads", label: "Roads", color: "#5d7489", shape: "square" },
+  { key: "drainage", label: "Drainage network", color: "#4f9fe0", shape: "square" },
+  { key: "infrastructure", label: "Critical infrastructure", color: "#38bdf8", shape: "circle" },
+  { key: "evacuation", label: "Evacuation centres", color: "#a3e635", shape: "circle" },
+];
 
 const selectClass = "mt-1.5 w-full rounded-md border border-input bg-panel px-3 py-2 text-sm outline-none focus:border-primary/60";
 
@@ -17,6 +27,9 @@ export function SaferRoutesPage() {
   const [destinationId, setDestinationId] = useState(NEARBY_AREAS[3]!.id);
   const [timestamp, setTimestamp] = useState(sim.selectedTimestamp ?? "00:00");
   const [computing, setComputing] = useState(false);
+  const [layers, setLayers] = useState<MapLayers>(DEFAULT_LAYERS);
+  const [layersPanelOpen, setLayersPanelOpen] = useState(false);
+  const [basemap, setBasemap] = useState<"dark" | "satellite">("dark");
   const canRequest = Boolean(timestamp && originId && destinationId && originId !== destinationId);
 
   useEffect(() => {
@@ -188,8 +201,72 @@ export function SaferRoutesPage() {
           }
           bodyClassName="relative min-h-0 flex-1 p-0"
         >
-          <MapSurface className="absolute inset-0" showRoutes={sim.routeShown} focus="route" padding={[64, 56, 48, 56]} />
-          <DepthLegend className="absolute top-3 left-14 z-1000" />
+          <MapSurface className="absolute inset-0" showRoutes={sim.routeShown} focus="route" padding={[64, 56, 48, 56]} layers={layers} basemap={basemap} />
+          
+          <div className="absolute top-3 left-3 z-1000 flex items-center gap-1.5">
+            <div className="fo-floating flex items-center overflow-hidden rounded-lg shadow-lg">
+              <button
+                onClick={() => setBasemap("dark")}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium transition-colors",
+                  basemap === "dark" ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+              >
+                <MapIcon className="size-3.5" /> Map
+              </button>
+              <button
+                onClick={() => setBasemap("satellite")}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium transition-colors",
+                  basemap === "satellite" ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+              >
+                <Satellite className="size-3.5" /> Satellite
+              </button>
+            </div>
+            <button
+              onClick={() => setLayersPanelOpen((v) => !v)}
+              className={cn(
+                "fo-floating flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium shadow-lg transition-colors",
+                layersPanelOpen ? "bg-white/10 text-foreground" : "text-foreground/80 hover:bg-white/5"
+              )}
+            >
+              <Layers className="size-3.5 text-primary" /> Layers
+            </button>
+          </div>
+
+          {layersPanelOpen && (
+            <div className="fo-floating absolute top-14 left-3 z-1000 w-60 rounded-lg p-3 shadow-xl">
+              <div className="flex items-center justify-between pb-2">
+                <span className="text-xs font-semibold text-foreground/85">Map Layers</span>
+                <button onClick={() => setLayersPanelOpen(false)} className="text-muted-foreground hover:text-foreground">
+                  <X className="size-3.5" />
+                </button>
+              </div>
+              <div className="space-y-0.5">
+                {LAYER_LABELS.map((l) => (
+                  <label
+                    key={l.key}
+                    className="flex cursor-pointer items-center gap-2.5 rounded px-2 py-1.5 text-sm hover:bg-white/5"
+                  >
+                    <span
+                      className={cn("size-2.5 shrink-0", l.shape === "circle" ? "rounded-full" : "rounded-sm")}
+                      style={{ backgroundColor: l.color }}
+                    />
+                    <span className="flex-1 text-foreground/80">{l.label}</span>
+                    <input
+                      type="checkbox"
+                      checked={layers[l.key]}
+                      onChange={(e) =>
+                        setLayers((prev) => ({ ...prev, [l.key]: e.target.checked }))
+                      }
+                      className="size-3.5 accent-[var(--primary)]"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </Panel>
       </div>
     </AppShell>

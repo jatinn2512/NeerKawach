@@ -1,5 +1,6 @@
 import { RouteLink } from "@/utils/router";
-import { ArrowRight, CloudRain, Waves } from "lucide-react";
+import { ArrowRight, CloudRain, MapIcon, Satellite, Waves } from "lucide-react";
+import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DepthLegend } from "@/components/DepthLegend";
 import { MapSurface } from "@/components/MapSurface";
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 export function DashboardPage() {
   const sim = useSim();
   const m = sim.metrics;
+  const [basemap, setBasemap] = useState<"dark" | "satellite">("dark");
 
   const affected = (sim.roadImpact?.rows ?? [])
     .filter((row) => row.affected === true || row.affected === "True" || row.affected === "true")
@@ -74,8 +76,32 @@ export function DashboardPage() {
           }
           bodyClassName="relative min-h-0 flex-1 p-0"
         >
-          <MapSurface className="absolute inset-0" interactive={false} padding={[48, 20, 28, 20]} />
-          <DepthLegend className="absolute top-3 left-3 z-1000" />
+          <MapSurface className="absolute inset-0" interactive={false} padding={[60, 20, 28, 20]} basemap={basemap} />
+          
+          <div className="absolute top-3 left-3 z-1000">
+            <div className="fo-floating flex items-center overflow-hidden rounded-lg shadow-lg">
+              <button
+                onClick={() => setBasemap("dark")}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium transition-colors",
+                  basemap === "dark" ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+              >
+                <MapIcon className="size-3.5" /> Map
+              </button>
+              <button
+                onClick={() => setBasemap("satellite")}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium transition-colors",
+                  basemap === "satellite" ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+              >
+                <Satellite className="size-3.5" /> Satellite
+              </button>
+            </div>
+          </div>
+
+          <DepthLegend className="absolute top-14 left-3 z-1000" />
         </Panel>
 
         {/* Right column — simulation control panel */}

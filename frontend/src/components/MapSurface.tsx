@@ -9,7 +9,7 @@ const FloodMapView = lazy(() => import("./FloodMapView"));
 function MapSkeleton() {
   return (
     <div className="flex h-full w-full items-center justify-center bg-[#0b1824]">
-      <p className="text-xs text-muted-foreground">Loading geospatial layers…</p>
+      <p className="text-sm text-muted-foreground">Loading geospatial layers…</p>
     </div>
   );
 }
@@ -21,6 +21,7 @@ export function MapSurface({
   showRoutes = false,
   focus,
   padding,
+  basemap,
 }: {
   className?: string | undefined;
   layers?: MapLayers | undefined;
@@ -29,10 +30,11 @@ export function MapSurface({
   /** "route" frames the computed route once available; otherwise the study area. */
   focus?: "area" | "route" | undefined;
   padding?: MapPadding | undefined;
+  basemap?: "dark" | "satellite" | undefined;
 }) {
   const sim = useSim();
   if (!sim.studyArea) {
-    return <div className={cn("flex items-center justify-center bg-panel p-6 text-center text-xs text-muted-foreground", className)}>
+    return <div className={cn("flex items-center justify-center bg-panel p-6 text-center text-sm text-muted-foreground", className)}>
       {sim.dataStatus === "loading" ? "Loading study-area metadata…" : "Study-area metadata unavailable. Start the backend and retry."}
     </div>;
   }
@@ -45,10 +47,11 @@ export function MapSurface({
             showRoutes={showRoutes}
             focus={focus}
             padding={padding}
+            basemap={basemap}
           />
       </Suspense>
-      {sim.dataStatus === "unavailable" ? <div className="absolute inset-x-3 top-3 z-1000 rounded-md bg-card/95 px-3 py-2 text-xs text-status-warn shadow-lg">Validated flood geometry is unavailable; no flood layer is being shown.</div> : null}
-      {sim.dataStatus === "error" ? <div className="absolute inset-x-3 top-3 z-1000 rounded-md bg-card/95 px-3 py-2 text-xs text-status-down shadow-lg">{sim.dataError}</div> : null}
+      {sim.dataStatus === "unavailable" ? <div className="absolute inset-x-3 top-3 z-1000 rounded-md bg-card/95 px-3 py-2 text-sm text-status-warn shadow-lg">Validated flood geometry is unavailable; no flood layer is being shown.</div> : null}
+      {sim.dataStatus === "error" ? <div className="absolute inset-x-3 top-3 z-1000 rounded-md bg-card/95 px-3 py-2 text-sm text-status-down shadow-lg">{sim.dataError}</div> : null}
     </div>
   );
 }
