@@ -7,7 +7,7 @@ client = TestClient(app)
 
 
 def test_application_import_and_startup() -> None:
-    assert app.title == "Neer Kawach API"
+    assert app.title == "FloodOps API"
     with TestClient(app) as started_client:
         assert started_client.get("/health").status_code == 200
 
