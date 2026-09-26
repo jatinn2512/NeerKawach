@@ -15,10 +15,10 @@ export const RISK_LABEL: Record<RiskLevel, string> = {
 
 // Matches the --risk-* tokens in styles.css so map, legend and badges agree.
 export const RISK_COLOR: Record<RiskLevel, string> = {
-  low: "#49d978",
-  moderate: "#ffb423",
-  high: "#ff7a45",
-  severe: "#ff3c4d",
+  low: "#1ee462",
+  moderate: "#ffc107",
+  high: "#ff5917",
+  severe: "#ff112b",
 };
 
 /** Depth (cm) thresholds used by the flood model to classify a location. */

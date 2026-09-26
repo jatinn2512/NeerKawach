@@ -13,6 +13,7 @@ import {
   TileLayer,
   Tooltip,
   useMap,
+  ZoomControl,
 } from "react-leaflet";
 import { RISK_COLOR, type LatLng } from "@/data/pilot";
 import { useSim } from "@/state/simulation";
@@ -37,6 +38,7 @@ const DRAIN_COLOR = "#4f9fe0";
 // Esri's Canvas tiles need no API key. Failed tiles fall back to a transparent
 // pixel so an offline recording shows the plain map background, not broken images.
 const ESRI_CANVAS = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas";
+const ESRI_IMAGERY = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 const BLANK_TILE = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
 const shapeCache = new WeakMap<LatLng[], { outer: LatLng[]; core: LatLng[] }>();
@@ -87,18 +89,34 @@ function ViewController({ bounds, padding, animate }: { bounds: LatLngBounds; pa
   return null;
 }
 
+/** Listens for 'fo-map-pan' custom events from the search bar and flies to the location. */
+function MapPanHandler() {
+  const map = useMap();
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { lat, lon, zoom } = (e as CustomEvent).detail;
+      if (lat != null && lon != null) map.flyTo([lat, lon], zoom ?? 15, { duration: 0.8 });
+    };
+    window.addEventListener("fo-map-pan", handler);
+    return () => window.removeEventListener("fo-map-pan", handler);
+  }, [map]);
+  return null;
+}
+
 export default function FloodMapView({
   layers = DEFAULT_LAYERS,
   interactive = true,
   showRoutes = false,
   focus = "area",
   padding = DEFAULT_PADDING,
+  basemap = "dark",
 }: {
   layers?: MapLayers | undefined;
   interactive?: boolean | undefined;
   showRoutes?: boolean | undefined;
   focus?: "area" | "route" | undefined;
   padding?: MapPadding | undefined;
+  basemap?: "dark" | "satellite" | undefined;
 }) {
   const sim = useSim();
   const bbox = sim.studyArea?.bbox;
@@ -137,7 +155,7 @@ export default function FloodMapView({
       maxZoom={18}
       scrollWheelZoom={interactive}
       dragging={interactive}
-      zoomControl={interactive}
+      zoomControl={false}
       doubleClickZoom={interactive}
       touchZoom={interactive}
       boxZoom={interactive}
@@ -145,15 +163,29 @@ export default function FloodMapView({
       attributionControl={false}
       className="h-full w-full"
     >
+      {interactive && <ZoomControl position="topleft" />}
       <ViewController bounds={target} padding={padding} animate={routeFocused} />
-      <TileLayer
-        className="fo-basemap"
-        url={`${ESRI_CANVAS}/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`}
-        attribution="Basemap &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
-        maxNativeZoom={16}
-        maxZoom={18}
-        errorTileUrl={BLANK_TILE}
-      />
+      <MapPanHandler />
+      {basemap === "satellite" ? (
+        <TileLayer
+          key="satellite"
+          url={ESRI_IMAGERY}
+          attribution="Imagery &copy; Esri, Maxar, Earthstar Geographics"
+          maxNativeZoom={18}
+          maxZoom={19}
+          errorTileUrl={BLANK_TILE}
+        />
+      ) : (
+        <TileLayer
+          key="dark"
+          className="fo-basemap"
+          url={`${ESRI_CANVAS}/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`}
+          attribution="Basemap &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
+          maxNativeZoom={16}
+          maxZoom={18}
+          errorTileUrl={BLANK_TILE}
+        />
+      )}
       <AttributionControl position="bottomright" prefix='<a href="https://leafletjs.com" target="_blank" rel="noreferrer">Leaflet</a>' />
       <ScaleControl position="bottomleft" imperial={false} />
 
