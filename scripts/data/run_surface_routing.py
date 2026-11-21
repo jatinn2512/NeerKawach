@@ -25,6 +25,10 @@ from rasterio.warp import calculate_default_transform, reproject, transform
 from surface_routing_core import RainfallStep, RoutingParameters, SimulationResult, simulate
 
 
+from run_manifest import record_period, simulation_run, validation_results
+from water_budget import surface_budgets
+
+
 ROOT = Path(__file__).resolve().parents[2]
 STUDY_AREA_PATH = ROOT / "config" / "study_area.json"
 ROUTING_CONFIG_PATH = ROOT / "config" / "surface_routing.json"
@@ -89,7 +93,7 @@ def prepare_projected_inputs() -> dict:
         with rasterio.open(path) as source:
             source_data = source.read(1)
             source_nodata = source.nodata
-            dtype = source.dtypes[0]
+            dtype = "float32" if name == "dem" else source.dtypes[0]
             destination_nodata = source_nodata if source_nodata is not None else -9999
             destination = np.full((height, width), destination_nodata, dtype=np.dtype(dtype))
             reproject(
@@ -109,7 +113,10 @@ def prepare_projected_inputs() -> dict:
             WORKING_DIR.mkdir(parents=True, exist_ok=True)
             with rasterio.open(output_path, "w", **profile) as target:
                 target.write(destination, 1)
-                target.update_tags(SOURCE_FILE=str(path.relative_to(ROOT)).replace("\\", "/"), WORKING_CRS=WORKING_CRS, RESAMPLING=resampling[name].name, PROCESSING="P3 projected working input")
+                source_tags = source.tags()
+                target.update_tags(**{key: source_tags[key] for key in ("UNITS", "SOURCE") if key in source_tags},
+                                   SOURCE_FILE=path.relative_to(ROOT).as_posix(), WORKING_CRS=WORKING_CRS,
+                                   RESAMPLING=resampling[name].name, PROCESSING="P3 projected working input")
             projected[name] = {"file": str(output_path.relative_to(ROOT)).replace("\\", "/"), "dtype": dtype, "nodata": destination_nodata}
 
     with rasterio.open(WORKING_DIR / "dem_working.tif") as dataset:
@@ -198,10 +205,12 @@ def load_rainfall(path: Path, shape: tuple[int, int], grid: dict, csv_timestep_s
 def write_depth_raster(path: Path, depth: np.ndarray, template_path: Path, extra_tags: dict[str, str] | None = None) -> None:
     with rasterio.open(template_path) as template:
         profile = template.profile.copy()
+        outside_terrain = template.read_masks(1) == 0
     profile.update(driver="GTiff", count=1, dtype="float32", nodata=-9999.0, compress="deflate", predictor=3, BIGTIFF="IF_SAFER")
     with rasterio.open(path, "w", **profile) as dataset:
         output = depth.astype(np.float32, copy=True)
         output[output < 0] = 0
+        output[outside_terrain] = profile["nodata"]
         dataset.write(output, 1)
         dataset.update_tags(PRODUCT="dynamic surface-water depth", UNITS="metres", CRS="EPSG:32643", **(extra_tags or {}))
 
@@ -224,7 +233,24 @@ def write_pgm(path: Path, values: np.ndarray, nodata: float | None = None) -> No
         handle.write(scaled.tobytes())
 
 
+
 def run(args: argparse.Namespace) -> dict:
+    inputs = [*P2_INPUTS.values(), Path(args.rainfall)]
+    with simulation_run(ROOT, "P3", inputs, [WORKING_DIR, RESULTS_DIR],
+                        [STUDY_AREA_PATH, ROUTING_CONFIG_PATH]) as manifest:
+        summary = _run(args, manifest["run_id"])
+        dt = summary["parameters"]["timestep_seconds"]
+        times = [s["timestamp"] for s in summary["time_series"]]
+        record_period(manifest, times, dt)
+        manifest["configuration"]["rainfall"] = summary["rainfall"]
+        checks = load_json(RESULTS_DIR / "p3_validation.json")
+        validation_results(manifest, checks["checks"])
+        validation_results(manifest, {k: v for k, v in checks["accounting_checks"].items()
+                                      if k != "routing_internal_transfers_conservative"})
+        return summary
+
+
+def _run(args: argparse.Namespace, run_id: str) -> dict:
     prepared = prepare_projected_inputs()
     grid = prepared["grid"]
     with rasterio.open(WORKING_DIR / "dem_working.tif") as dem_dataset:
@@ -267,7 +293,8 @@ def run(args: argparse.Namespace) -> dict:
     write_pgm(PREVIEW_DIR / "max_depth.pgm", result.maximum_depth_m)
 
     summary = {
-        "processing_script": "p3-surface-routing-1.0.0",
+        "run_id": run_id,
+        "processing_script": "p3-surface-routing-1.1.0",
         "processing_date_utc": datetime.now(timezone.utc).isoformat(),
         "study_area_config": str(STUDY_AREA_PATH.relative_to(ROOT)).replace("\\", "/"),
         "working_crs": grid["crs"],
@@ -289,6 +316,7 @@ def run(args: argparse.Namespace) -> dict:
         "surface_balance_residual_m3": result.surface_balance_residual_m3,
         "maximum_routing_balance_residual_m3": result.maximum_routing_balance_residual_m3,
         "accounting_checks": accounting_checks,
+        "surface_volume_budgets": surface_budgets(result.states, result.initial_stored_water_m3),
         "accounting_equations": {
             "rainfall_generation": "rainfall = runoff_input + coefficient_loss",
             "runoff_partition": "runoff_input = surface_water_input + infiltration_loss",

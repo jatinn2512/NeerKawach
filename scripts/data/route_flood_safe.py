@@ -11,6 +11,7 @@ import csv
 import heapq
 import json
 import math
+import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -59,19 +60,69 @@ def haversine_m(first: tuple[float, float], second: tuple[float, float]) -> floa
     return EARTH_RADIUS_M * 2.0 * math.asin(math.sqrt(a))
 
 
-def parse_wkt_linestring(value: str | None, source: tuple[float, float], target: tuple[float, float]) -> list[tuple[float, float]]:
-    if not value:
-        return [source, target]
-    text = " ".join(value.replace("\n", " ").split())
-    if not text.upper().startswith("LINESTRING"):
-        return [source, target]
-    body = text[text.find("(") + 1:text.rfind(")")]
-    points: list[tuple[float, float]] = []
-    for item in body.split(","):
-        parts = item.strip().split()
-        if len(parts) >= 2:
-            points.append((float(parts[0]), float(parts[1])))
-    return points if len(points) >= 2 else [source, target]
+# The GraphML producer writes WGS84 lon/lat. Allow at most 5 cm of coordinate rounding.
+ENDPOINT_TOLERANCE_M = 0.05
+
+
+def wkt_parts(value):
+    """Read 2D linework without adding a GIS dependency to the routing API."""
+    match = re.fullmatch(r"\s*(LINESTRING|MULTILINESTRING)\s*\((.*?)\)\s*", value or "", re.I | re.S)
+    if not match:
+        raise ValueError("missing or malformed line geometry")
+    body = match[2].strip()
+    if match[1].upper() == "MULTILINESTRING":
+        if not re.fullmatch(r"\([^()]+\)(?:\s*,\s*\([^()]+\))*", body):
+            raise ValueError("malformed multipart geometry")
+        bodies = re.findall(r"\(([^()]+)\)", body)
+    else:
+        bodies = [body]
+    parts = []
+    for body in bodies:
+        points = []
+        for pair in body.split(","):
+            x, y = map(float, pair.split())
+            if not (-180 <= x <= 180 and -90 <= y <= 90):
+                raise ValueError("invalid geographic coordinate")
+            points.append((x, y))
+        if len(points) < 2:
+            raise ValueError("incomplete line geometry")
+        parts.append(points)
+    return parts
+
+
+def oriented_line(parts, source, target):
+    """Join a unique chain from the source. Keep every interior vertex."""
+    if len(parts) == 1:
+        line = parts[0]
+        forward = max(haversine_m(source, line[0]), haversine_m(target, line[-1]))
+        reverse = max(haversine_m(source, line[-1]), haversine_m(target, line[0]))
+        if min(forward, reverse) > ENDPOINT_TOLERANCE_M:
+            raise ValueError("endpoints disagree with directed nodes")
+        if forward == reverse and source != target:
+            raise ValueError("ambiguous edge direction")
+        return line if forward <= reverse else line[::-1]
+    remaining = list(parts)
+    chain = []
+    current = source
+    while remaining:
+        matches = [(index, reverse) for index, part in enumerate(remaining)
+                   for reverse, end in ((False, part[0]), (True, part[-1]))
+                   if haversine_m(current, end) <= ENDPOINT_TOLERANCE_M]
+        if len(matches) != 1:
+            raise ValueError("disconnected or ambiguous multipart geometry")
+        index, reverse = matches[0]
+        part = remaining.pop(index)
+        if reverse:
+            part = part[::-1]
+        chain.extend(part[1:] if chain else part)
+        current = part[-1]
+    if haversine_m(current, target) > ENDPOINT_TOLERANCE_M:
+        raise ValueError("multipart geometry misses target")
+    return chain
+
+
+def parse_wkt_linestring(value, source, target):
+    return oriented_line(wkt_parts(value), source, target)
 
 
 def polyline_length_m(geometry: list[tuple[float, float]]) -> float:
@@ -91,6 +142,7 @@ class Edge:
     maxspeed: str
     geometry: tuple[tuple[float, float], ...]
     length_m: float
+    geometry_issue: str | None = None
 
 
 @dataclass
@@ -149,7 +201,17 @@ def load_graph(path: Path) -> RoadGraph:
         osm_way_id = str(values.get("osm_way_id", ""))
         if not osm_way_id:
             raise ValueError(f"GraphML edge {edge_id} has no OSM way identifier")
-        geometry = parse_wkt_linestring(values.get("geometry"), nodes[source], nodes[target])
+        start, end = nodes[source], nodes[target]
+        geometry_issue = None
+        length = haversine_m(start, end)
+        try:
+            parts = wkt_parts(values.get("geometry"))
+            length = sum(polyline_length_m(part) for part in parts)
+            geometry = oriented_line(parts, start, end)
+        except ValueError as exc:
+            geometry = []
+            geometry_issue = str(exc)
+
         item = Edge(
             edge_id=edge_id,
             source=source,
@@ -161,7 +223,8 @@ def load_graph(path: Path) -> RoadGraph:
             oneway=values.get("oneway", ""),
             maxspeed=values.get("maxspeed", ""),
             geometry=tuple(geometry),
-            length_m=polyline_length_m(geometry),
+            length_m=length,
+            geometry_issue=geometry_issue,
         )
         if edge_id in edges:
             raise ValueError(f"Duplicate GraphML edge identifier: {edge_id}")
@@ -380,8 +443,14 @@ class RoutingEngine:
 
     def _path_geometry(self, edge_ids: list[str]) -> list[list[float]]:
         coordinates: list[list[float]] = []
+        previous_target = None
         for edge_id in edge_ids:
-            for point in self.graph.edges[edge_id].geometry:
+            edge = self.graph.edges[edge_id]
+            if previous_target is not None and edge.source != previous_target:
+                raise ValueError("Route edge sequence is disconnected")
+            points = edge.geometry if previous_target is None else edge.geometry[1:]
+            previous_target = edge.target
+            for point in points:
                 item = [float(point[0]), float(point[1])]
                 if not coordinates or coordinates[-1] != item:
                     coordinates.append(item)
@@ -393,11 +462,16 @@ class RoutingEngine:
             route = result[route_name]
             if not route["edge_ids"]:
                 continue
+            issues = {eid: self.graph.edges[eid].geometry_issue for eid in route["edge_ids"]
+                      if self.graph.edges[eid].geometry_issue}
             features.append({
                 "type": "Feature",
                 "id": route_name,
                 "properties": {
                     "route_type": route_name,
+                    "edge_ids": route["edge_ids"],
+                    "geometry_issues": issues,
+                    "includes_snap_connectors": False,
                     "status": result["status"],
                     "timestamp": result["timestamp"],
                     "distance_m": route["distance_m"],
@@ -406,7 +480,7 @@ class RoutingEngine:
                     "affected_segment_count": len(route["affected_segments"]),
                     "source_phase": "P8",
                 },
-                "geometry": {"type": "LineString", "coordinates": self._path_geometry(route["edge_ids"])},
+                "geometry": None if issues else {"type": "LineString", "coordinates": self._path_geometry(route["edge_ids"])},
             })
         return {
             "type": "FeatureCollection",
@@ -431,7 +505,7 @@ def create_engine() -> RoutingEngine:
     return engine
 
 
-def write_outputs(engine: RoutingEngine, result: dict[str, Any], stem: str = "route") -> dict[str, str]:
+def write_outputs(engine: RoutingEngine, result: dict[str, Any], stem: str = "route", run_id: str | None = None) -> dict[str, str]:
     output_config = engine.config["outputs"]
     route_dir = ROOT / output_config["route_directory"]
     metrics_dir = ROOT / output_config["metrics_directory"]
@@ -444,6 +518,7 @@ def write_outputs(engine: RoutingEngine, result: dict[str, Any], stem: str = "ro
     metrics_path = metrics_dir / f"{prefix}.json"
     provenance_path = metadata_dir / f"{prefix}_provenance.json"
     provenance = {
+        "run_id": run_id,
         "processing_script": SCRIPT_VERSION,
         "generated_at_utc": timestamp_text(datetime.now(timezone.utc)),
         "source_road_graph": relative(engine.graph.source_file),
@@ -472,9 +547,31 @@ def main() -> None:
     parser.add_argument("--timestamp", required=True)
     parser.add_argument("--output-stem", default="route")
     args = parser.parse_args()
-    engine = create_engine()
-    result = engine.route((args.origin_lon, args.origin_lat), (args.destination_lon, args.destination_lat), args.timestamp)
-    outputs = write_outputs(engine, result, args.output_stem)
+    from run_manifest import simulation_run, validation_results
+
+    def inputs():
+        config = load_json(CONFIG_PATH)
+        return [ROOT / config[key] for key in ("source_road_graph", "source_p7_road_timeseries",
+                                                "source_p7_road_summary", "source_p7_config")]
+
+    def output_dirs():
+        config = load_json(CONFIG_PATH)
+        return [ROOT / value for key, value in config["outputs"].items() if key.endswith("_directory")]
+
+    with simulation_run(ROOT, "P8", inputs, output_dirs, [CONFIG_PATH, STUDY_AREA_PATH]) as manifest:
+        engine = create_engine()
+        result = engine.route((args.origin_lon, args.origin_lat), (args.destination_lon, args.destination_lat), args.timestamp)
+        outputs = write_outputs(engine, result, args.output_stem, manifest["run_id"])
+        graph_input = next(item for item in manifest["inputs"] if item["format"] == "graphml")
+        xs, ys = zip(*engine.graph.nodes.values())
+        graph_input["spatial"] = {"crs": engine.config["provenance"]["road_graph_crs"],
+                                  "bbox": [min(xs), min(ys), max(xs), max(ys)]}
+        graph_input["provider"] = "OpenStreetMap"
+        manifest.update(simulation_start=result["timestamp"], simulation_end=result["timestamp"])
+        manifest["configuration"]["route_request"] = {"origin": [args.origin_lon, args.origin_lat],
+                                                     "destination": [args.destination_lon, args.destination_lat],
+                                                     "timestamp": args.timestamp}
+        validation_results(manifest, {"complete_road_join": engine.validate_join()["complete_for_graph"]})
     print(json.dumps({"result": result, "outputs": outputs}, indent=2))
 
 

@@ -5,14 +5,57 @@ frontend/dist/
 dist/
 build/
 .vite/
+.vite-temp/
+.next/
+.npm/
+.pnpm-store/
+**/.yarn/cache/
 *.tsbuildinfo
 
 # ─── Environment and local configuration ───
 **/.env
 **/.env.*
 !**/.env.example
+!**/.env.sample
+!**/.env.template
+!**/.env.*.example
+!**/.env.*.sample
+!**/.env.*.template
 frontend/.cache/
 frontend/.parcel-cache/
+
+# Local credentials and private key material
+.secrets/
+.certs/
+.netrc
+_netrc
+.pypirc
+**/.aws/credentials
+**/.aws/sso/cache/
+**/.aws/cli/cache/
+credentials.json
+token.json
+service-account.json
+service_account.json
+service-account-key.json
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+application_default_credentials.json
+id_rsa
+id_ecdsa
+id_ed25519
+*.key
+*.p12
+*.pfx
+*.pem
+!*.pub.pem
+!*.cert.pem
+/*.crt
+/*.cer
+/backend/*.crt
+/backend/*.cer
+/frontend/*.crt
+/frontend/*.cer
 
 # ─── Browser smoke-test profiles and reports ───
 .chrome-demo-test*/
@@ -29,6 +72,7 @@ __pycache__/
 .pyright/
 .tox/
 .nox/
+.ipynb_checkpoints/
 .venv/
 venv/
 ENV/
@@ -40,6 +84,7 @@ pip-wheel-metadata/
 
 # ─── Coverage, logs, and OS/editor files ───
 .coverage
+.coverage.*
 htmlcov/
 coverage/
 *.log
@@ -49,8 +94,33 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 Desktop.ini
+*.swp
+*.swo
+*~
+*.tmp
+*.local.code-workspace
+*.prof
+*.pstats
+*.cpuprofile
 .idea/
-.vscode/
+**/.vscode/*
+!**/.vscode/extensions.json
+!**/.vscode/tasks.json
+!**/.vscode/*.code-snippets
+
+# Local SQLite databases at application entry points and SQLite sidecars
+/*.db
+/*.sqlite
+/*.sqlite3
+/backend/*.db
+/backend/*.sqlite
+/backend/*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite*-journal
+*.sqlite*-wal
+*.sqlite*-shm
 
 # ─── Antigravity / AI agent customizations ───
 .agents/
@@ -100,6 +170,12 @@ data/roads/*
 !data/roads/.gitkeep
 data/landcover/*
 !data/landcover/.gitkeep
+!data/landcover/raw/
+data/landcover/raw/*
+!data/landcover/raw/README.md
+!data/landcover/processed/
+data/landcover/processed/*
+!data/landcover/processed/README.md
 data/validation/*
 !data/validation/.gitkeep
 !data/validation/flood_extent/
@@ -130,6 +206,19 @@ data/coupling/*
 data/inundation/*
 !data/inundation/.gitkeep
 
+data/runs/
+data/phase1_backups/
+/data/scratch/
+/data/tmp/
+
 # ─── P8 generated route GeoJSON, metrics and provenance products ───
 data/routing/*
 !data/routing/.gitkeep
+
+# Root-local engineering reports (both project spellings)
+/NEERKAWACH_COMPLETE_ENGINEERING_AUDIT.md
+/NEERKAWACH_PHASE_1_FINAL_CLOSURE.md
+/NEERKAWACH_PHASE_1_REPORT.md
+/NEERKAWATCH_COMPLETE_ENGINEERING_AUDIT.md
+/NEERKAWATCH_PHASE_1_FINAL_CLOSURE.md
+/NEERKAWATCH_PHASE_1_REPORT.md

@@ -11,13 +11,14 @@ import argparse
 import gzip
 import json
 import math
-import struct
 from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
 import rasterio
 from rasterio.transform import from_origin
+
+from run_manifest import checksum as sha256
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -30,7 +31,7 @@ BUFFERED_TIF = OUTPUT_DIR / "bellandur_dem_buffered.tif"
 CLIPPED_TIF = OUTPUT_DIR / "bellandur_dem_clipped.tif"
 REPORT_PATH = ROOT / "data" / "dem" / "metadata" / "bellandur_dem_processed.json"
 
-SCRIPT_VERSION = "p2-dem-preparation-1.0.0"
+SCRIPT_VERSION = "p2-dem-preparation-1.1.0"
 BUFFER_DISTANCE_M = 300.0
 HGT_RESOLUTION_DEGREES = 1.0 / 3600.0
 HGT_MIN_LON = 77.0
@@ -86,34 +87,34 @@ def buffer_bbox(bbox: dict, distance_m: float) -> dict:
         "max_lon": bbox["max_lon"] + lon_delta,
     }
 
+def posting_extent(row_start, col_start, row_stop, col_stop):
+    # N12E077 includes its boundary postings. Affine coordinates describe
+    # outside pixel corners, half a sample away from their posting centres.
+    west = HGT_MIN_LON - HGT_RESOLUTION_DEGREES / 2
+    north = HGT_MAX_LAT + HGT_RESOLUTION_DEGREES / 2
+    return {"min_lon": west + col_start * HGT_RESOLUTION_DEGREES,
+            "max_lon": west + col_stop * HGT_RESOLUTION_DEGREES,
+            "max_lat": north - row_start * HGT_RESOLUTION_DEGREES,
+            "min_lat": north - row_stop * HGT_RESOLUTION_DEGREES}
 
-def aligned_window(bbox: dict) -> tuple[slice, dict]:
-    """Return a source-posting window whose geospatial bounds cover bbox."""
-    def lower_index(value: float) -> int:
-        ratio = value / HGT_RESOLUTION_DEGREES
-        nearest = round(ratio)
-        return nearest if math.isclose(ratio, nearest, rel_tol=0, abs_tol=1e-9) else math.floor(ratio)
 
-    def upper_index(value: float) -> int:
-        ratio = value / HGT_RESOLUTION_DEGREES
-        nearest = round(ratio)
-        return nearest if math.isclose(ratio, nearest, rel_tol=0, abs_tol=1e-9) else math.ceil(ratio)
+def aligned_window(bbox: dict) -> tuple[tuple[slice, slice], dict]:
+    """Smallest outward-rounded source-cell window covering the requested bounds."""
+    extent = posting_extent(0, 0, HGT_ROWS, HGT_COLS)
+    def index(distance, rounding):
+        value = distance / HGT_RESOLUTION_DEGREES
+        nearest = round(value)
+        return nearest if abs(value - nearest) < 1e-9 else rounding(value)
 
-    col_start = lower_index(bbox["min_lon"] - HGT_MIN_LON)
-    col_stop = upper_index(bbox["max_lon"] - HGT_MIN_LON)
-    row_start = lower_index(HGT_MAX_LAT - bbox["max_lat"])
-    row_stop = upper_index(HGT_MAX_LAT - bbox["min_lat"])
-    col_start = max(0, min(HGT_COLS - 1, col_start))
-    col_stop = max(col_start + 1, min(HGT_COLS, col_stop))
-    row_start = max(0, min(HGT_ROWS - 1, row_start))
-    row_stop = max(row_start + 1, min(HGT_ROWS, row_stop))
-    extent = {
-        "min_lon": HGT_MIN_LON + col_start * HGT_RESOLUTION_DEGREES,
-        "max_lon": HGT_MIN_LON + col_stop * HGT_RESOLUTION_DEGREES,
-        "max_lat": HGT_MAX_LAT - row_start * HGT_RESOLUTION_DEGREES,
-        "min_lat": HGT_MAX_LAT - row_stop * HGT_RESOLUTION_DEGREES,
-    }
-    return (slice(row_start, row_stop), slice(col_start, col_stop)), extent
+    col_start = index(bbox["min_lon"] - extent["min_lon"], math.floor)
+    col_stop = index(bbox["max_lon"] - extent["min_lon"], math.ceil)
+    row_start = index(extent["max_lat"] - bbox["max_lat"], math.floor)
+    row_stop = index(extent["max_lat"] - bbox["min_lat"], math.ceil)
+    if not (0 <= col_start < col_stop <= HGT_COLS and 0 <= row_start < row_stop <= HGT_ROWS):
+        raise ValueError("Requested crop extends beyond the source HGT grid")
+    return ((slice(row_start, row_stop), slice(col_start, col_stop)),
+            posting_extent(row_start, col_start, row_stop, col_stop))
+
 
 
 def write_geotiff(path: Path, values: np.ndarray, extent: dict, area_or_point: str = "Point") -> None:
@@ -135,7 +136,8 @@ def write_geotiff(path: Path, values: np.ndarray, extent: dict, area_or_point: s
         BIGTIFF="IF_SAFER",
     ) as dataset:
         dataset.write(values.astype(np.int16, copy=False), 1)
-        dataset.update_tags(AREA_OR_POINT=area_or_point, SOURCE_FORMAT="SRTM HGT big-endian int16 postings")
+        dataset.update_tags(AREA_OR_POINT=area_or_point, SOURCE="SRTM HGT", UNITS="metres",
+                            SOURCE_FORMAT="SRTM HGT big-endian int16 postings")
 
 
 def raster_report(path: Path, expected_bbox: dict | None = None) -> dict:
@@ -158,6 +160,9 @@ def raster_report(path: Path, expected_bbox: dict | None = None) -> dict:
             "pixel_size_degrees": [abs(dataset.transform.a), abs(dataset.transform.e)],
             "extent": extent,
             "nodata": nodata,
+            "dtype": dataset.dtypes[0],
+            "transform": list(dataset.transform)[:6],
+            "mean_elevation_m": float(valid.mean()),
             "minimum_elevation_m": int(valid.min()),
             "maximum_elevation_m": int(valid.max()),
             "valid_pixel_count": int(valid.size),
@@ -195,7 +200,7 @@ def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     values = read_hgt()
     source_extent = {"min_lon": 77.0, "min_lat": 12.0, "max_lon": 78.0, "max_lat": 13.0}
-    write_geotiff(SOURCE_TIF, values, source_extent)
+    write_geotiff(SOURCE_TIF, values, posting_extent(0, 0, HGT_ROWS, HGT_COLS))
 
     buffered_bbox = buffer_bbox(area["bbox"], args.buffer_m)
     buffered_window, buffered_extent = aligned_window(buffered_bbox)
@@ -205,7 +210,7 @@ def main() -> None:
     write_geotiff(CLIPPED_TIF, values[clipped_window], clipped_extent)
 
     source_report = raster_report(SOURCE_TIF)
-    buffered_report = raster_report(BUFFERED_TIF, area["bbox"])
+    buffered_report = raster_report(BUFFERED_TIF, buffered_bbox)
     clipped_report = raster_report(CLIPPED_TIF, area["bbox"])
     if not clipped_report["all_pixels_valid"]:
         raise ValueError("Final clipped DEM contains empty pixels")
@@ -219,6 +224,8 @@ def main() -> None:
         "source_file": str(RAW_PATH.relative_to(ROOT)).replace("\\", "/"),
         "source_format": "SRTM HGT, big-endian signed int16 elevation postings",
         "source_hgt_extent": source_extent,
+        "source_sha256": sha256(RAW_PATH),
+        "registration": "First and last HGT samples are integer-degree grid postings. Native pixel centres coincide with samples.",
         "source_nodata": source_metadata.get("nodata_value", HGT_NODATA),
         "crs": "EPSG:4326",
         "pixel_size_degrees": [HGT_RESOLUTION_DEGREES, HGT_RESOLUTION_DEGREES],

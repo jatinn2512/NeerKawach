@@ -17,7 +17,7 @@ The P2 inputs are checked for matching EPSG:4326 CRS, dimensions and affine tran
 
 Physical calculations use EPSG:32643, WGS 84 / UTM zone 43N. Bengaluru is near 77.65°E, which places Bellandur in UTM zone 43N. This local projected CRS provides metre-based distances and square-metre cell areas without changing the canonical EPSG:4326 study-area definition. The transformation uses rasterio/GDAL reprojection; the original P1/P2 rasters remain unchanged.
 
-Projected inputs are written under `data/surface_routing/input/` at 30 m resolution. The current working grid is 94 × 96 cells with 900 m² per cell. DEM values use bilinear reprojection; categorical/derived terrain rasters use nearest-neighbour reprojection. Grid metadata is in [`data/surface_routing/input/working_grid.json`](../data/surface_routing/input/working_grid.json).
+The working grid has 95 columns and 97 rows of 30 m cells in EPSG:32643. Bilinear reprojection writes the DEM as Float32. Other terrain layers use nearest-neighbour resampling. [Working grid metadata](../data/surface_routing/input/working_grid.json)
 
 ## Rainfall interface
 
@@ -105,7 +105,7 @@ The reusable runner is [`scripts/data/run_surface_routing.py`](../scripts/data/r
 - QA report: [`data/surface_routing/results/p3_validation.json`](../data/surface_routing/results/p3_validation.json)
 - Lightweight PGM inspection previews: `data/surface_routing/results/preview/`
 
-The synthetic 12-step run generated 314,100 m³ gross rainfall input, 235,575 m³ effective runoff input, 78,525 m³ coefficient loss, 2,617.5 m³ infiltration loss, 232,957.5 m³ surface-water input, zero boundary outflow under the closed boundary, and 232,957.5 m³ final stored surface water. Both reported balance residuals are `0.0 m³`. Maximum simulated depth was 2.43395 m at the final fixture timestep. These are deterministic engineering-fixture outputs, not observed or predicted Bellandur flood depths.
+The corrected synthetic fixture supplies 320,904 m³ of rainfall, of which 80,226 m³ is coefficient loss and 2,674.2 m³ is infiltration. Final surface storage is 238,003.8 m³. The closed boundary has zero outflow and the gross residual is below 0.000001 m³. Maximum depth is 1.30278 m. [Phase 1 verification](../NEERKAWACH_PHASE_1_REPORT.md)
 
 ## Tests
 

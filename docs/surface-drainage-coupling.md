@@ -25,24 +25,9 @@ created from the preserved P5 model with:
 This prevents rainfall from being counted once in P3 and again in the SWMM
 subcatchments. The original P5 model is not modified.
 
-The exchange order is deterministic:
+P3 advances every 300 seconds. At each boundary it applies the previous mapped overflow, updates surface water and reserves up to 75 m³ per candidate (0.25 m³/s for 300 s). These are assumed inlet capacities. The generated rate retains enough water to fund SWMM's half-step transitions when rates change. SWMM debits each inlet's reservation by the volume it actually admits. Where candidates share a node, their contributions are debited in proportion to their available balances. Unused water returns to its original cell at the end of the simulation.
 
-1. return the previous exchange's mapped SWMM overflow to its existing P4
-   surface cell;
-2. run the P3 surface step;
-3. transfer available water at existing P4 connection candidates to SWMM;
-4. advance SWMM at its 30-second hydraulic timestep until the next 300-second
-   exchange.
-
-The P3/P6 exchange interval is 300 seconds. The P5 hydraulic timestep remains
-30 seconds. Surface-to-drainage transfer is bounded by:
-
-```text
-transfer = min(available surface volume, 0.25 m3/s * 300 s)
-```
-
-The 0.25 m³/s per-connection capacity is a documented prototype model
-assumption, not a surveyed municipal capacity.
+The control-free derived INP uses a 30-second rule clock so adaptive hydraulic steps land on the existing output boundaries. Hydraulic steps can be shorter. The node CSV reports instantaneous rates and integrated interval volumes separately. In the transfer CSV, `transfer_volume_m3` is the amount removed from the cell into the reservation. `native_admitted_m3`, `closing_reservation_m3` and `final_refund_m3` describe the subsequent settlement.
 
 ## Connection and overflow rules
 
@@ -51,12 +36,7 @@ P6 uses only the 15 existing P4 connection candidates in
 invent additional inlets or infer a new surface location from a SWMM node
 depth.
 
-SWMM flooding is integrated from the extracted node flooding rate at each
-30-second step. If a flooding node has an existing P4 connection candidate,
-the corresponding volume is returned to that candidate's P3 cell. If it has no
-candidate, the volume is recorded in the overflow CSV as an explicitly
-unmapped drainage-domain sink. Node depth/head remain hydraulic diagnostics;
-they are not converted directly to surface depth.
+P6 integrates successive node flooding rates by the trapezoidal rule over each native hydraulic step and checks their sum against SWMM's unrounded system flooding total. At a mapped node it shares the overflow among that node's candidates. The next surface step or the final state places each share in its candidate cell. Unmapped flooding leaves the coupled domain. Node depths and heads remain hydraulic diagnostics.
 
 The P4 candidate provenance remains `terrain_inferred` and
 `candidate_only_no_transfer_simulated`. Transfer capacity remains
@@ -78,51 +58,11 @@ initial surface storage
 + surface residual
 ```
 
-The extracted drainage balance is:
-
-```text
-generated lateral inflow
-- external outfall discharge
-- SWMM node flooding
-- final node/link routing storage
-= hydraulic continuity residual
-```
-
-The coupled balance combines those domains. Mapped flooding is a source back
-to P3; unmapped flooding remains a named drainage-domain sink. The validation
-also checks:
-
-```text
-SWMM flooding = mapped return + unmapped flooding
-```
-
-The report and the extracted time series are not interchangeable accounting
-sources. SWMM report values are rounded display totals and the report's
-continuity error is nonzero. P6 therefore uses the extracted 30-second
-node/link time series for the drainage-domain totals, while retaining report
-values as diagnostics. The synthetic run records a 57.6773 m³ hydraulic
-continuity residual and classifies it explicitly as the SWMM numerical
-continuity bucket. The unexplained coupled residual after that explicit bucket
-is approximately zero and is the value subject to the configured 0.001 m³
-tolerance.
-
-The corrected accounting also treats direct generated inflow at the SWMM
-outfall node as boundary discharge. Measuring only its connecting conduit
-would under-count the external outflow.
+The external budget uses the native cumulative outfall flux and the measured change in surface, node and link storage. Internal capture and mapped overflow cancel across domains. The absolute volume tolerance of 0.001 m³ applies to surface accounting, exchange in each direction and the agreement between independent reconstructions. The reported gross residual must also fit the solver allowance of 1% of hydraulic inputs including initial storage. The old 30-second rectangle integration and the strict 0.001 m³ gross comparison remain available as diagnostics. [Equations, validation criteria and timestep sensitivity](../NEERKAWACH_PHASE_1_FINAL_CLOSURE.md)
 
 ## Synthetic fixture result
 
-The deterministic P3 fixture contains 40 mm over 12 five-minute records. The
-P3 buffered surface domain receives 314,100 m³ of rainfall input. The P6 run
-transfers 8,928.4424 m³ to drainage, returns 3,188.4006 m³ from mapped
-overflow, records 1,846.3115 m³ as unmapped overflow, and leaves 227,217.4581
-m³ in the surface domain plus 2,555.8338 m³ in final SWMM routing storage.
-
-The maximum coupled surface depth in the fixture is 1.85147 m. The maximum
-coupled SWMM node depth is 2.5 m at `drn_n_00021`; it is a drainage-node
-diagnostic, not a street-water depth. The original P5 baseline's reported
-40.3685 m maximum at `drn_n_00044` remains assumption-driven and is not
-reinterpreted by P6.
+The 40 mm Bellandur fixture supplied 320,904 m³ of rain. The drains admitted 8,076.160 m³. SWMM flooded 4,451.300 m³, of which 2,817.714 m³ returned to mapped cells. The final surface and drainage storages were 232,745.354 and 2,412.048 m³. The gross residual was +57.446 m³ and the unrounded native continuity error was +0.711295%. Both numerical acceptance checks passed. The strict 0.001 m³ whole-domain comparison was false. [Full-precision ledger](../data/coupling/results/coupling_water_balance.json) · [Validation](../data/coupling/results/p6_validation.json)
 
 ## Files
 

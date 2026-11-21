@@ -4,6 +4,8 @@ P8 is a downstream routing layer over the locked P1 road network and the
 validated P7 road-impact products. It does not rerun rainfall, terrain,
 surface-water, drainage, or hydraulic models.
 
+P8 matches each directed geometry to its graph nodes in EPSG:4326. A route whose edge geometry is missing, ambiguous or disconnected carries its edge IDs and a null GeoJSON geometry. Reported road distance excludes origin and destination snap offsets. [Orientation tolerance and verification](../NEERKAWACH_PHASE_1_REPORT.md)
+
 ## Inputs
 
 - Directed GraphML: `data/roads/processed/bellandur_roads.graphml`

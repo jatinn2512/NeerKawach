@@ -20,6 +20,9 @@ from rasterio.features import geometry_mask, rasterize, shapes
 from rasterio.warp import transform_geom
 
 
+from run_manifest import record_period, simulation_run, validation_results
+
+
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "config" / "inundation.json"
 P6_DEPTH_DIR = ROOT / "data" / "coupling" / "results" / "coupled_surface_depth"
@@ -289,7 +292,20 @@ def build_road_geojson(roads: dict[str, Any], summary_rows: list[dict[str, Any]]
     return {"type": "FeatureCollection", "name": "bellandur_road_flood_impact", "crs": {"type": "name", "properties": {"name": "EPSG:4326"}}, "features": features}
 
 
+
 def run() -> dict[str, Any]:
+    def inputs():
+        return [ROADS_PATH, P6_SUMMARY_PATH, P6_BALANCE_PATH, P6_MAX_DEPTH_PATH,
+                *sorted(P6_DEPTH_DIR.glob("depth_*.tif"))]
+    with simulation_run(ROOT, "P7", inputs, [OUTPUT_DIR], [CONFIG_PATH, STUDY_AREA_PATH]) as manifest:
+        summary = _run(manifest["run_id"])
+        record_period(manifest, summary["timestamps"], 0)
+        checks = load_json(METRICS_DIR / "p7_validation.json")
+        validation_results(manifest, {k: v for k, v in checks.items() if k != "vector_crs_valid"})
+        return summary
+
+
+def _run(run_id: str) -> dict[str, Any]:
     config = load_json(CONFIG_PATH)
     validate_config(config)
     area = load_json(STUDY_AREA_PATH)
@@ -454,7 +470,7 @@ def run() -> dict[str, Any]:
     }
     provenance_path = METADATA_DIR / "p7_provenance.json"
     write_json(provenance_path, provenance)
-    p6_summary = p6_summary
+
     summary = {
         "processing_script": SCRIPT_VERSION,
         "generated_at_utc": generated_at,
@@ -490,12 +506,17 @@ def run() -> dict[str, Any]:
             "final_surface_storage_m3": p6_balance["surface_domain"]["final_surface_storage_m3"],
             "final_drainage_storage_m3": p6_balance["drainage_domain"]["final_routing_storage_m3"],
             "p6_unexplained_residual_m3": p6_balance["coupled_domain"]["unexplained_residual_m3"],
+            "p6_raw_global_residual_m3": p6_balance["coupled_domain"]["global_residual_m3"],
+            "p6_raw_global_balance_within_tolerance": abs(p6_balance["coupled_domain"]["global_residual_m3"])
+                <= p6_balance["coupled_domain"]["mass_balance_tolerance_m3"],
             "metric_type": "inherited_from_P6_balance",
         },
         "outputs": provenance["outputs"],
         "provenance_file": relative(provenance_path),
         "limitations": ["Depth is inherited from P6 surface-water states; P7 does not calculate new hydraulic depths.", "Road impacts use rasterized OSM line footprints and do not use road elevations or observed flood depths.", "The 0.05 m inundation and risk thresholds are project-defined visualization/decision thresholds, not a scientific or regulatory standard.", "P6 terrain-inferred drainage connections and synthetic rainfall provenance remain unchanged."],
     }
+    summary.update(run_id=run_id, p6_run_id=p6_summary.get("run_id"),
+                   p6_validation_status=p6_summary.get("validation_status"))
     summary_path = METRICS_DIR / "p7_summary.json"
     write_json(summary_path, summary)
     validation = {

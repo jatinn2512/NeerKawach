@@ -13,6 +13,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
+from run_manifest import simulation_run, validation_results
+
+
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "config" / "swmm_model.json"
 MODEL_PATH = ROOT / "data" / "swmm" / "models" / "bellandur_prototype.inp"
@@ -147,7 +150,27 @@ def deterministic_signature(payload: dict) -> str:
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
+
 def run_simulation() -> dict:
+    inputs = [MODEL_PATH, NODES_PATH, LINKS_PATH, STORM_PATH, ASSESSMENT_PATH, MAPPING_PATH, COVERAGE_PATH]
+    with simulation_run(ROOT, "P5", inputs, [RESULTS_DIR, COVERAGE_PATH.parent], [CONFIG_PATH]) as manifest:
+        result = _run_simulation(manifest["run_id"])
+        summary = result["summary"]
+        manifest.update(simulation_start=summary["configured_simulation_start"],
+                        simulation_end=summary["configured_simulation_end"])
+        manifest["configuration"]["duration_seconds"] = summary["configured_duration_seconds"]
+        manifest["configuration"]["rainfall_source"] = summary["rainfall_source"]
+        # The model file is authoritative if an older generated INP is used.
+        inherited = {"all_p4_features_accounted_for", "no_artificial_links", "mapping_complete"}
+        manifest["upstream_validation"] = {k: result["validation"][k] for k in sorted(inherited)}
+        scalar_checks = {k: v for k, v in result["validation"].items() if isinstance(v, bool) and k not in inherited}
+        for key in ("outputs_cover_all_simulated_nodes", "outputs_cover_all_simulated_links"):
+            scalar_checks[key] = result["validation"][key]
+        validation_results(manifest, scalar_checks)
+        return result
+
+
+def _run_simulation(run_id: str) -> dict:
     try:
         from pyswmm import Links, Nodes, Simulation, Subcatchments
     except ImportError as error:  # pragma: no cover
@@ -356,6 +379,7 @@ def run_simulation() -> dict:
     OUTFALL_SUMMARY.write_text(json.dumps(outfall_summary, indent=2) + "\n", encoding="utf-8")
     COMPONENT_SUMMARY.write_text(json.dumps(component_summary, indent=2) + "\n", encoding="utf-8")
     WATER_BALANCE.write_text(json.dumps(water_balance, indent=2) + "\n", encoding="utf-8")
+    summary["run_id"] = run_id
     SWMM_SUMMARY.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     validation = {"test_status": "PASS", "model_started": bool(engine_version), "model_completed": bool(end_time), "configured_end_time": configured_end, "last_report_timestamp": end_time, "report_ending_datetime": parsed_balance["report_period"]["ending_datetime"], "simulation_reached_intended_end": parsed_balance["report_period"]["ending_datetime"] == configured_end_dt.strftime("%m/%d/%Y %H:%M:%S"), "fatal_errors": [], "p4_totals": assessment["p4_totals"], "simulated_totals": assessment["simulated_totals"], "excluded_totals": assessment["excluded_totals"], "all_p4_features_accounted_for": mapping["coverage"]["all_p4_features_accounted_for"], "no_artificial_links": mapping["no_artificial_links"], "mapping_complete": mapping["coverage"]["all_p4_features_accounted_for"], "component_assessment_complete": len(assessment["components"]) == assessment["p4_totals"]["components"], "subcatchment_count": coverage["subcatchment_count"], "canonical_bbox_area_m2_projected": coverage["canonical_bbox_area_m2_projected"], "modeled_subcatchment_area_m2": coverage["modeled_subcatchment_area_m2"], "subcatchment_coverage_percentage": coverage["coverage_percentage"], "no_material_subcatchment_gap": not coverage["gaps"]["material_gap"], "no_material_subcatchment_overlap": not coverage["overlaps"]["material_overlap"], "rainfall_expected_volume_m3": rainfall_volume_m3, "rainfall_report_precipitation_m3": parsed_balance["runoff_quantity"]["total_precipitation"], "rainfall_report_difference_m3": rainfall_report_difference_m3, "rainfall_difference_is_report_rounding": abs(rainfall_report_difference_m3) <= 100.0, "maximum_node_audit": maximum_node_audit, "closed_terminal_audit": closed_terminal_audit, "closed_terminal_audit_count": len(closed_terminal_audit), "node_timeseries_rows": len(node_rows), "link_timeseries_rows": len(link_rows), "outfall_timeseries_rows": len(outfall_rows), "node_count": len(node_ids), "link_count": len(link_ids), "outputs_cover_all_simulated_nodes": {node_id: sum(row["node_id"] == node_id for row in node_rows) > 0 for node_id in node_ids}, "outputs_cover_all_simulated_links": {link_id: sum(row["link_id"] == link_id for row in link_rows) > 0 for link_id in link_ids}, "no_negative_depths": all(row["depth_m"] >= 0 for row in node_rows + link_rows + outfall_rows), "no_negative_flooding_rates": all(row["flooding_cms"] >= 0 for row in node_rows + outfall_rows), "rainfall_source_is_synthetic_fixture": storm.get("source") == "synthetic_test", "swmm_reported_runoff_error_percent": runoff_error, "swmm_reported_flow_routing_error_percent": flow_routing_error, "report_continuity_error_percent": {"runoff": parsed_balance["runoff_quantity"]["continuity_error_percent"], "flow_routing": parsed_balance["flow_routing"]["continuity_error_percent"]}, "water_balance_reported": WATER_BALANCE.exists(), "deterministic_result_sha256": signature, "outputs": {"node_timeseries": str(NODE_CSV.relative_to(ROOT)).replace("\\", "/"), "link_timeseries": str(LINK_CSV.relative_to(ROOT)).replace("\\", "/"), "outfall_timeseries": str(OUTFALL_CSV.relative_to(ROOT)).replace("\\", "/"), "component_summary": str(COMPONENT_SUMMARY.relative_to(ROOT)).replace("\\", "/"), "water_balance": str(WATER_BALANCE.relative_to(ROOT)).replace("\\", "/"), "summary": str(SWMM_SUMMARY.relative_to(ROOT)).replace("\\", "/"), "subcatchment_coverage": str(COVERAGE_PATH.relative_to(ROOT)).replace("\\", "/"), "subcatchment_qa_preview": str((PREVIEW_DIR / "p5_subcatchments_qa.geojson").relative_to(ROOT)).replace("\\", "/")}, "limitations": ["Prototype hydraulic parameters are model assumptions, not BBMP measurements.", "P4 direction was adjusted only for the verified outfall link and is recorded in component_assessment.json.", "Closed terminal junctions are boundary assumptions and are not claims about real municipal outfalls.", "P5 prototype subcatchment routing is not verified municipal drainage connectivity."]}
     VALIDATION_PATH.write_text(json.dumps(validation, indent=2) + "\n", encoding="utf-8")

@@ -122,6 +122,9 @@ def rainfall_sources() -> list[dict[str, Any]]:
 
 def _run_record(phase: str, product: str, payload: dict[str, Any], timestamps: list[str]) -> dict[str, Any]:
     record: dict[str, Any] = {"phase": phase, "product": product, "timestamps": timestamps}
+    for key in ("run_id", "validation_status", "p6_run_id", "p6_validation_status"):
+        if isinstance(payload.get(key), str):
+            record[key] = payload[key]
     generated = payload.get("generated_at_utc")
     if isinstance(generated, str):
         record["generated_at_utc"] = generated

@@ -140,7 +140,6 @@ def graphml(elements: list[dict], bbox: tuple[float, float, float, float]) -> st
                 "highway": tag(tags, "highway"), "name": tag(tags, "name"),
                 "oneway": tag(tags, "oneway"), "maxspeed": tag(tags, "maxspeed"),
                 "surface": tag(tags, "surface"), "lanes": tag(tags, "lanes"),
-                "geometry": f"LINESTRING ({start['lon']} {start['lat']}, {end['lon']} {end['lat']})",
             }
             if oneway == "-1":
                 source, target = target, source
@@ -161,7 +160,10 @@ def graphml(elements: list[dict], bbox: tuple[float, float, float, float]) -> st
         lines.append(f'<node id="{esc(node_id)}"><data key="x">{lon}</data><data key="y">{lat}</data></node>')
     for edge in edges:
         lines.append(f'<edge id="{esc(edge["key"])}" source="{esc(edge["source"])}" target="{esc(edge["target"])}">')
-        for key, value in edge["attrs"].items():
+        x1, y1 = nodes[edge["source"]]
+        x2, y2 = nodes[edge["target"]]
+        geometry = f"LINESTRING ({x1} {y1}, {x2} {y2})"
+        for key, value in {**edge["attrs"], "geometry": geometry}.items():
             lines.append(f'<data key="{key}">{esc(value)}</data>')
         lines.append('</edge>')
     lines.extend(['</graph>', '</graphml>'])

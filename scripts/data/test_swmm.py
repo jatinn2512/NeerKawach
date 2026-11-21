@@ -182,7 +182,10 @@ class SwmmPrototypeTests(unittest.TestCase):
         self.assertAlmostEqual(reported_rainfall, expected_rainfall, delta=100.0)
         self.assertEqual(self.water_balance["input_volume_cross_check"]["difference_m3"], expected_rainfall - reported_rainfall)
         self.assertTrue(self.water_balance["input_volume_cross_check"]["difference_is_report_rounding"])
-        self.assertEqual(self.validation["report_continuity_error_percent"], {"runoff": -0.143, "flow_routing": 0.11})
+        self.assertEqual(self.validation["report_continuity_error_percent"], {"runoff": -0.143, "flow_routing": 0.14})
+        for name, section in (("runoff", "runoff_quantity"), ("flow_routing", "flow_routing")):
+            self.assertEqual(self.validation["report_continuity_error_percent"][name],
+                             self.water_balance["report"][section]["continuity_error_percent"])
         definitions = self.water_balance["report"]["field_definitions"]
         self.assertEqual(definitions["runoff_quantity"]["source_section"], "Runoff Quantity Continuity")
         self.assertEqual(definitions["flow_routing"]["source_section"], "Flow Routing Continuity")

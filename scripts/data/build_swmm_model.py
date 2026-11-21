@@ -16,7 +16,11 @@ from collections import Counter, deque
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import rasterio
 from rasterio.warp import transform as project_points
+
+from process_dem import BUFFERED_TIF
+from run_manifest import checksum
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -81,6 +85,10 @@ def parse_storm(path: Path) -> dict:
 def dt_parts(timestamp: str) -> tuple[str, str]:
     value = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
     return value.strftime("%m/%d/%Y"), value.strftime("%H:%M")
+
+
+def hours_to_days(hours: float) -> float:
+    return hours / 24.0
 
 
 def fmt(value: float | int | None) -> str:
@@ -277,9 +285,13 @@ def build_model() -> dict:
     if assumptions.get("source") != "model_assumption":
         raise ValueError("All P5 hydraulic defaults must be under source=model_assumption")
     invert_offset = float(assumptions["invert_offset_below_ground_m"])
-    for node_id in simulated_node_ids:
-        if nodes[node_id].get("ground_elevation_m") is None:
-            raise ValueError(f"P4 node {node_id} has no ground elevation for the model assumption")
+    with rasterio.open(BUFFERED_TIF) as terrain:
+        coordinates = [nodes[n]["coordinates"][:2] for n in simulated_node_ids]
+        for node_id, sample in zip(simulated_node_ids, terrain.sample(coordinates, masked=True)):
+            row, col = terrain.index(*nodes[node_id]["coordinates"][:2])
+            if not (0 <= row < terrain.height and 0 <= col < terrain.width
+                    and not sample.mask[0] and nodes[node_id].get("ground_elevation_m") == float(sample[0])):
+                raise ValueError(f"P4 elevation for {node_id} disagrees with the buffered DEM. Regenerate P4 from the local inputs.")
 
     model_links = []
     direction_adjustments = []
@@ -333,9 +345,10 @@ def build_model() -> dict:
     lines.extend(["", "[SUBAREAS]", ";;Subcatchment N-Imperv N-Perv S-Imperv S-Perv PctZero RouteTo PctRouted"])
     for subcatchment in subcatchments:
         lines.append(f"{subcatchment['subcatchment_id']} {fmt(assumptions['impervious_roughness_n'])} {fmt(assumptions['pervious_roughness_n'])} {fmt(assumptions['impervious_storage_mm'])} {fmt(assumptions['pervious_storage_mm'])} {fmt(assumptions['percent_zero_impervious'])} OUTLET 100")
-    lines.extend(["", "[INFILTRATION]", ";;Subcatchment MaxRate MinRate Decay DryTime MaxInfil"])
+    dry_time_days = hours_to_days(assumptions["horton_dry_time_hours"])
+    lines.extend(["", "[INFILTRATION]", ";;Subcatchment MaxRate MinRate Decay DryTime(days) MaxInfil"])
     for subcatchment in subcatchments:
-        lines.append(f"{subcatchment['subcatchment_id']} {fmt(assumptions['horton_max_rate_mm_per_hour'])} {fmt(assumptions['horton_min_rate_mm_per_hour'])} {fmt(assumptions['horton_decay_per_hour'])} {fmt(assumptions['horton_dry_time_hours'])}")
+        lines.append(f"{subcatchment['subcatchment_id']} {fmt(assumptions['horton_max_rate_mm_per_hour'])} {fmt(assumptions['horton_min_rate_mm_per_hour'])} {fmt(assumptions['horton_decay_per_hour'])} {fmt(dry_time_days)}")
     lines.extend(["", "[JUNCTIONS]", ";;Name Elevation Ymax Y0 Ysur Apond"])
     for node in junctions:
         invert = float(node["ground_elevation_m"]) - invert_offset
@@ -411,6 +424,8 @@ def build_model() -> dict:
             excluded_nodes.append({"p4_id": node_id, "swmm_id": None, "source": node.get("source"), "component_id": component_id, "feature_type": node.get("node_type"), "status": "excluded", "exclusion_reason": assessment["exclusion_reason"]})
     mapping_links = [{"p4_id": link["link_id"], "swmm_id": link["link_id"], "source": link.get("source"), "component_id": component_by_node[link["from_node"]], "feature_type": "conduit", "status": "mapped", "p4_from_node": link["from_node"], "p4_to_node": link["to_node"], "swmm_from_node": model_link_by_id[link["link_id"]]["from_node"], "swmm_to_node": model_link_by_id[link["link_id"]]["to_node"], "length_m": link.get("length_m"), "direction_source": link.get("direction_status")} for link in sorted(links, key=lambda item: item["link_id"])]
     mapping = {
+        "ground_elevation_dem": BUFFERED_TIF.relative_to(ROOT).as_posix(),
+        "ground_elevation_dem_sha256": checksum(BUFFERED_TIF),
         "processing_script": SCRIPT_VERSION,
         "processing_date_utc": datetime.now(timezone.utc).isoformat(),
         "p4_totals": {"nodes": len(node_ids), "links": len(links), "components": len(graph_components)},

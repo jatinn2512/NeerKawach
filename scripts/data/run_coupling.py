@@ -25,6 +25,10 @@ from rasterio.warp import transform as project_points
 from surface_routing_core import MassBalanceError, RainfallStep, RoutingParameters, route_step
 
 
+from run_manifest import record_period, simulation_run, validation_results
+from water_budget import budget, exchange_budget, exchange_steps, funded_rate, settle_inlet, surface_budgets
+
+
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "config" / "coupling_model.json"
 ROUTING_CONFIG_PATH = ROOT / "config" / "surface_routing.json"
@@ -68,6 +72,14 @@ def finite(value: object, default: float = 0.0) -> float:
     except (TypeError, ValueError):
         return default
     return number if math.isfinite(number) else default
+
+
+def measured(value: object) -> float:
+    """A missing hydraulic flux or storage invalidates its integrated budget."""
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("Non-finite hydraulic measurement in volume accounting")
+    return number
 
 
 def timestamp_value(value: object) -> str:
@@ -143,6 +155,11 @@ def validate_and_load_connections(config: dict, valid: np.ndarray, template: ras
 def create_zero_rainfall_model() -> None:
     source = P5_MODEL_PATH.read_text(encoding="utf-8")
     source = source.replace("ALLOW_PONDING YES", "ALLOW_PONDING NO")
+    # With no control rules this only lands native steps on the existing observation
+    # boundaries, as swmm_stride did, while exposing each adaptive step to Python.
+    if re.search(r"(?im)^\s*(RULE_STEP\s|\[CONTROLS\])", source):
+        raise ValueError("P6 requires a control-free prototype INP for exchange grid alignment")
+    source = re.sub(r"(?im)^(ROUTING_STEP\s+(\S+))[ \t]*$", r"\1\nRULE_STEP \2", source)
     in_timeseries = False
     lines = []
     for line in source.splitlines():
@@ -283,10 +300,13 @@ class SurfaceCoupler:
         self.states.append(step)
         return step
 
-    def final_state(self, timestamp: str, overflow_by_cell: dict[str, float]) -> dict:
+    def final_state(self, timestamp: str, overflow_by_cell: dict[str, float], unused: dict[str, float]) -> dict:
+        refund = sum(unused.values())
+        for candidate in self.candidates:
+            self.depth[candidate["surface_row"], candidate["surface_col"]] += unused[candidate["connection_id"]] / self.cell_area_m2
         overflow_return = self._add_overflow(timestamp, overflow_by_cell)
         stored = float(np.sum(self.depth[self.valid] * self.cell_area_m2))
-        residual = self.initial_storage_m3 + self.total_rainfall_m3 - self.total_coefficient_loss_m3 - self.total_infiltration_loss_m3 - self.total_boundary_outflow_m3 - self.total_transfer_m3 + self.total_overflow_return_m3 - stored
+        residual = self.initial_storage_m3 + self.total_rainfall_m3 - self.total_coefficient_loss_m3 - self.total_infiltration_loss_m3 - self.total_boundary_outflow_m3 - self.total_transfer_m3 + refund + self.total_overflow_return_m3 - stored
         state = {
             "index": len(self.states),
             "timestamp": timestamp,
@@ -301,6 +321,9 @@ class SurfaceCoupler:
             "surface_mass_balance_residual_m3": residual,
             "water_depth_m": self.depth.copy(),
             "poststorm_state": True,
+            "unused_capture_return_m3": refund,
+            "unused_capture_by_connection_m3": dict(unused),
+            "inlet_carry_m3": 0.0,
         }
         if float(np.max(self.depth[self.valid])) > self.maximum_depth_m:
             self.maximum_depth_m = float(np.max(self.depth[self.valid]))
@@ -321,8 +344,23 @@ def set_generated_inflows(nodes, candidate_rates: dict[str, float], candidate_no
         nodes[node_id].generated_inflow(float(candidate_rates.get(node_id, 0.0)))
 
 
+
 def run_coupling() -> dict:
-    from pyswmm import Links, Nodes, Simulation
+    inputs = [P3_RAINFALL_PATH, P3_DEM_PATH, P3_DIRECTION_PATH, P4_CONNECTIONS_PATH,
+              P4_NODES_PATH, P5_MODEL_PATH, P5_MAPPING_PATH, P5_ASSESSMENT_PATH,
+              P3_SUMMARY_PATH, P3_VALIDATION_PATH]
+    with simulation_run(ROOT, "P6", inputs, [DATA_DIR], [CONFIG_PATH, ROUTING_CONFIG_PATH]) as manifest:
+        result = _run_coupling(manifest["run_id"])
+        record_period(manifest, [result["summary"]["simulation_start"], result["summary"]["simulation_end"]], 0)
+        checks = result["validation"]
+        validation_results(manifest, {k: v for k, v in checks.items() if isinstance(v, bool)})
+        manifest["raw_global_closure"] = checks["strict_global_volume_diagnostic"]
+        return result
+
+
+def _run_coupling(run_id: str) -> dict:
+    from pyswmm import Links, Nodes, Simulation, SystemStats
+    from swmm.toolkit import solver
     from run_swmm import parse_report_balance
 
     config = load_json(CONFIG_PATH)
@@ -331,16 +369,17 @@ def run_coupling() -> dict:
     p3_summary = load_json(P3_SUMMARY_PATH)
     p3_validation = load_json(P3_VALIDATION_PATH)
     assessment = load_json(P5_ASSESSMENT_PATH)
-    mapping = load_json(P5_MAPPING_PATH)
     if rainfall.get("source") != "synthetic_test":
         raise ValueError("P6 requires the deterministic synthetic_test rainfall fixture")
     with rasterio.open(P3_DEM_PATH) as template:
         dem = template.read(1).astype(np.float64)
         nodata = template.nodata
         valid = np.isfinite(dem) & (dem != nodata)
-        direction = rasterio.open(P3_DIRECTION_PATH).read(1)
-        if direction.shape != dem.shape:
-            raise ValueError("P3 DEM and flow-direction grids are not aligned")
+        with rasterio.open(P3_DIRECTION_PATH) as direction_dataset:
+            if (direction_dataset.shape, direction_dataset.crs, direction_dataset.transform) != (
+                    template.shape, template.crs, template.transform):
+                raise ValueError("P3 DEM and flow-direction grids are not aligned")
+            direction = direction_dataset.read(1)
         candidates = validate_and_load_connections(config, valid, template)
         surface = SurfaceCoupler(dem, valid, direction, template, candidates, config, routing_config)
         candidate_nodes = sorted({candidate["swmm_node_id"] for candidate in candidates})
@@ -356,198 +395,174 @@ def run_coupling() -> dict:
         overflow_rows: list[dict] = []
         node_rows: list[dict] = []
         link_rows: list[dict] = []
-        overflow_accumulator: dict[str, float] = defaultdict(float)
-        exchange_overflow_by_connection: dict[str, float] = defaultdict(float)
-        transfer_by_timestamp: dict[str, dict[str, float]] = {}
-        initial_transfer = {node_id: 0.0 for node_id in candidate_nodes}
-        for transfer in surface.transfer_rows:
-            initial_transfer[transfer["swmm_node_id"]] = initial_transfer.get(transfer["swmm_node_id"], 0.0) + transfer["transfer_volume_m3"] / surface.exchange_seconds
         report_step = float(config["surface_grid"]["timestep_seconds"])
         hydraulic_step = float(config["drainage_model"]["hydraulic_timestep_seconds"])
         simulation_start = parse_timestamp(initial_timestamp)
-        last_exchange_timestamp = simulation_start
-        current_overflow_by_connection: dict[str, float] = {}
+        node_ids = sorted(assessment["simulated_node_ids"])
+        link_ids = sorted(assessment["simulated_link_ids"])
+        boundaries = {node: component["boundary_source"] for component in assessment["components"]
+                      for node in component["node_ids"]}
+        reserves = {c["connection_id"]: 0.0 for c in candidates}
+        rates = dict.fromkeys(candidate_nodes, 0.0)
+        surface.states[0]["inlet_carry_m3"] = 0.0
+        exchange_trace = []
+        step_lengths = []
         with Simulation(str(COUPLED_MODEL_PATH), str(REPORT_PATH), str(OUTPUT_PATH)) as sim:
-            sim.step_advance(int(hydraulic_step))
-            nodes = Nodes(sim)
-            links = Links(sim)
-            node_ids = sorted(assessment["simulated_node_ids"])
-            link_ids = sorted(assessment["simulated_link_ids"])
-            set_generated_inflows(nodes, initial_transfer, candidate_nodes)
-            def capture_state(current: str) -> None:
-                for node_id in node_ids:
-                    node = nodes[node_id]
-                    flooding = max(0.0, finite(node.flooding))
-                    overflow_accumulator[node_id] += flooding * hydraulic_step
-                    node_rows.append({
-                        "timestamp": current,
-                        "node_id": node_id,
-                        "depth_m": finite(node.depth),
-                        "head_m": finite(node.head),
-                        "total_inflow_cms": finite(node.total_inflow),
-                        "lateral_inflow_cms": finite(node.lateral_inflow),
-                        "total_outflow_cms": finite(node.total_outflow),
-                        "flooding_cms": flooding,
-                        "volume_m3": finite(node.volume),
-                    })
-                for link_id in link_ids:
-                    link = links[link_id]
-                    flow = finite(link.flow)
-                    area = finite(link.ups_xsection_area)
-                    link_rows.append({
-                        "timestamp": current,
-                        "link_id": link_id,
-                        "flow_cms": flow,
-                        "depth_m": finite(link.depth),
-                        "velocity_mps": flow / area if area > 1e-12 else 0.0,
-                        "volume_m3": finite(link.volume),
-                    })
-            for _ in sim:
-                current = timestamp_value(sim.current_time)
-                current_dt = parse_timestamp(current)
-                capture_state(current)
-                is_exchange = (current_dt - simulation_start).total_seconds() > 0 and abs((current_dt - simulation_start).total_seconds() % report_step) < 1e-6
-                if is_exchange:
-                    interval_overflow_by_connection: dict[str, float] = defaultdict(float)
-                    for node_id, volume in sorted(overflow_accumulator.items()):
-                        if volume <= 0:
-                            continue
-                        mapped = candidates_for_node.get(node_id, [])
-                        boundary_source = next((item["boundary_source"] for item in assessment["components"] if node_id in item["node_ids"]), "unknown")
-                        if mapped:
-                            for candidate in mapped:
-                                returned = volume / len(mapped)
-                                interval_overflow_by_connection[candidate["connection_id"]] += returned
-                                overflow_rows.append({
-                                    "timestamp": current,
-                                    "swmm_node_id": node_id,
-                                    "connection_id": candidate["connection_id"],
-                                    "surface_cell_id": candidate["surface_cell_id"],
-                                    "flooding_rate_cms_average": returned / report_step,
-                                    "overflow_volume_m3": returned,
-                                    "returned_to_surface_volume_m3": returned,
-                                    "unmapped_overflow_volume_m3": 0.0,
-                                    "boundary_source": boundary_source,
-                                    "source": "model_assumption",
-                                })
-                        else:
-                            overflow_rows.append({
-                                "timestamp": current,
-                                "swmm_node_id": node_id,
-                                "connection_id": "",
-                                "surface_cell_id": "",
-                                "flooding_rate_cms_average": volume / report_step,
-                                "overflow_volume_m3": volume,
-                                "returned_to_surface_volume_m3": 0.0,
-                                "unmapped_overflow_volume_m3": volume,
-                                "boundary_source": boundary_source,
-                                "source": "model_assumption",
-                            })
-                    for connection_id, volume in interval_overflow_by_connection.items():
-                        exchange_overflow_by_connection[connection_id] = volume
-                    if current in rainfall_by_timestamp and current != initial_timestamp:
-                        step = surface.step(current, rainfall_by_timestamp[current], dict(exchange_overflow_by_connection))
-                        exchange_overflow_by_connection.clear()
-                        current_rates: dict[str, float] = defaultdict(float)
-                        for transfer in surface.transfer_rows:
-                            if transfer["timestamp"] == current:
-                                current_rates[transfer["swmm_node_id"]] += transfer["transfer_volume_m3"] / surface.exchange_seconds
-                        set_generated_inflows(nodes, current_rates, candidate_nodes)
-                    overflow_accumulator.clear()
-                    last_exchange_timestamp = current_dt
-            final_current = timestamp_value(sim.current_time)
-            if not node_rows or final_current != node_rows[-1]["timestamp"]:
-                capture_state(final_current)
-            # Any final hydraulic interval is returned to the surface after the storm.
-            final_timestamp = timestamp_value(sim.current_time)
-            if final_timestamp not in rainfall_by_timestamp:
-                final_by_connection: dict[str, float] = defaultdict(float)
-                for node_id, volume in sorted(overflow_accumulator.items()):
-                    if volume <= 0:
-                        continue
-                    mapped = candidates_for_node.get(node_id, [])
-                    if mapped:
-                        for candidate in mapped:
-                            returned = volume / len(mapped)
-                            final_by_connection[candidate["connection_id"]] += returned
-                            overflow_rows.append({
-                                "timestamp": final_timestamp,
-                                "swmm_node_id": node_id,
-                                "connection_id": candidate["connection_id"],
-                                "surface_cell_id": candidate["surface_cell_id"],
-                                "flooding_rate_cms_average": returned / report_step,
-                                "overflow_volume_m3": returned,
-                                "returned_to_surface_volume_m3": returned,
-                                "unmapped_overflow_volume_m3": 0.0,
-                                "boundary_source": "model_assumption",
-                                "source": "model_assumption",
-                            })
-                    else:
-                        boundary_source = next((item["boundary_source"] for item in assessment["components"] if node_id in item["node_ids"]), "unknown")
-                        overflow_rows.append({
-                            "timestamp": final_timestamp,
-                            "swmm_node_id": node_id,
-                            "connection_id": "",
-                            "surface_cell_id": "",
-                            "flooding_rate_cms_average": volume / report_step,
-                            "overflow_volume_m3": volume,
-                            "returned_to_surface_volume_m3": 0.0,
-                            "unmapped_overflow_volume_m3": volume,
-                            "boundary_source": boundary_source,
-                            "source": "model_assumption",
-                        })
-                        
-                surface.final_state(final_timestamp, dict(final_by_connection))
+            sim.start()
+            if timestamp_value(sim.start_time) != initial_timestamp:
+                raise ValueError("SWMM and surface clocks start at different instants")
+            duration_ms = round((sim.end_time - sim.start_time).total_seconds() * 1000)
+            sample_ms, exchange_ms = round(hydraulic_step * 1000), round(report_step * 1000)
+            if duration_ms != len(rainfall_records) * exchange_ms or exchange_ms % sample_ms:
+                raise ValueError("Hydraulic observations, forcing and exchange clocks disagree")
+            nodes = {n: Nodes(sim)[n] for n in node_ids}
+            links = {k: Links(sim)[k] for k in link_ids}
+            stats = SystemStats(sim)
+            initial_drain_storage = sum(n.volume for n in nodes.values()) + sum(k.volume for k in links.values())
+            previous_flood = {n: measured(node.flooding) for n, node in nodes.items()}
+            previous_admission = {n: measured(node.statistics["lateral_infow_vol"]) for n, node in nodes.items()}
+            sample_flood = dict.fromkeys(node_ids, 0.0)
+            interval_flood = dict.fromkeys(node_ids, 0.0)
+            interval_admission = dict.fromkeys(node_ids, 0.0)
+
+            def schedule():
+                offered = defaultdict(float)
+                for row in surface.transfer_rows[-len(candidates):]:
+                    reserves[row["connection_id"]] += row["transfer_volume_m3"]
+                    offered[row["swmm_node_id"]] += row["transfer_volume_m3"]
+                for node, group in candidates_for_node.items():
+                    funded = sum(reserves[c["connection_id"]] for c in group)
+                    rates[node] = funded_rate(offered[node], funded, rates[node], report_step, hydraulic_step)
+                set_generated_inflows(nodes, rates, candidate_nodes)
+
+            schedule()
+            elapsed_ms = 0
+            while elapsed_ms < duration_ms:
+                days = solver.swmm_step()
+                next_ms = round(days * 86400000) if days else duration_ms
+                if not elapsed_ms < next_ms <= min(duration_ms, (elapsed_ms // sample_ms + 1) * sample_ms):
+                    raise ValueError("Native SWMM step skipped an observation boundary")
+                dt = (next_ms - elapsed_ms) / 1000.0
+                step_lengths.append(dt)
+                elapsed_ms = next_ms
+                for n, node in nodes.items():
+                    flow = measured(node.flooding)
+                    sample_flood[n] += (previous_flood[n] + flow) * 0.5 * dt
+                    previous_flood[n] = flow
+                if elapsed_ms % sample_ms:
+                    continue
+                current = timestamp_value(simulation_start + timedelta(milliseconds=elapsed_ms))
+                for n, node in nodes.items():
+                    cumulative = measured(node.statistics["lateral_infow_vol"])
+                    admitted = cumulative - previous_admission[n]
+                    previous_admission[n] = cumulative
+                    interval_admission[n] += admitted
+                    interval_flood[n] += sample_flood[n]
+                    node_rows.append(dict(timestamp=current, node_id=n, interval_seconds=hydraulic_step,
+                        depth_m=finite(node.depth), head_m=finite(node.head), total_inflow_cms=measured(node.total_inflow),
+                        lateral_inflow_cms=measured(node.lateral_inflow), total_outflow_cms=finite(node.total_outflow),
+                        flooding_cms=previous_flood[n], volume_m3=measured(node.volume),
+                        flooding_volume_m3=sample_flood[n], lateral_inflow_volume_m3=admitted))
+                    sample_flood[n] = 0.0
+                for k, link in links.items():
+                    flow, area = finite(link.flow), finite(link.ups_xsection_area)
+                    link_rows.append(dict(timestamp=current, link_id=k, flow_cms=flow, depth_m=finite(link.depth),
+                                          velocity_mps=flow / area if area > 1e-12 else 0.0, volume_m3=measured(link.volume)))
+                if elapsed_ms % exchange_ms:
+                    continue
+                returned = {}
+                funded_balances = reserves.copy()
+                for n in node_ids:
+                    group = candidates_for_node.get(n, [])
+                    ids = [c["connection_id"] for c in group]
+                    settle_inlet(reserves, ids, interval_admission[n])
+                    volume = interval_flood[n]
+                    if volume > 0:
+                        for c in group or [None]:
+                            share = volume / len(group) if c else volume
+                            if c:
+                                returned[c["connection_id"]] = share
+                            overflow_rows.append(dict(timestamp=current, swmm_node_id=n,
+                                connection_id=c["connection_id"] if c else "", surface_cell_id=c["surface_cell_id"] if c else "",
+                                flooding_rate_cms_average=share / report_step, overflow_volume_m3=share,
+                                returned_to_surface_volume_m3=share if c else 0.0,
+                                unmapped_overflow_volume_m3=0.0 if c else share, boundary_source=boundaries[n],
+                                source="model_assumption"))
+                for row in surface.transfer_rows[-len(candidates):]:
+                    key = row["connection_id"]
+                    row["native_admitted_m3"] = funded_balances[key] - reserves[key]
+                    row["closing_reservation_m3"] = reserves[key]
+                    row["final_refund_m3"] = reserves[key] if elapsed_ms == duration_ms else 0.0
+                exchange_trace.append({"timestamp": current, "prescribed_rate_by_node_cms": dict(rates),
+                                       "reserved_by_connection_m3": dict(reserves),
+                                       "native_admission_by_node_m3": dict(interval_admission)})
+                interval_admission = dict.fromkeys(node_ids, 0.0)
+                interval_flood = dict.fromkeys(node_ids, 0.0)
+                if elapsed_ms == duration_ms:
+                    surface.final_state(current, returned, reserves)
+                else:
+                    state = surface.step(current, rainfall_by_timestamp[current], returned)
+                    state["inlet_carry_m3"] = sum(reserves.values())
+                    schedule()
+            native = stats.routing_stats
     report_balance = parse_report_balance(REPORT_PATH)
-    surface_total_depth = max((float(np.max(state["water_depth_m"][surface.valid])) for state in surface.states), default=0.0)
-    max_node_row = max(node_rows, key=lambda row: row["depth_m"], default={})
-    total_returned = sum(finite(row.get("returned_to_surface_volume_m3")) for row in overflow_rows)
-    total_unmapped = sum(finite(row.get("unmapped_overflow_volume_m3")) for row in overflow_rows)
-    hydraulic_seconds = hydraulic_step
-    actual_generated_inflow_m3 = sum(finite(row.get("lateral_inflow_cms")) * hydraulic_seconds for row in node_rows)
-    actual_flooding_m3 = sum(finite(row.get("flooding_cms")) * hydraulic_seconds for row in node_rows)
+    actual_generated_inflow_m3 = sum(row["lateral_inflow_volume_m3"] for row in node_rows)
+    actual_flooding_m3 = sum(row["flooding_volume_m3"] for row in node_rows)
+    unused_capture = sum(reserves.values())
+    net_capture = surface.total_transfer_m3 - unused_capture
     outfall_id = assessment["outfall_candidate"]
-    outfall_link_ids = {
-        item["swmm_id"]
-        for item in mapping["link_mapping"]["mapped"]
-        if item.get("swmm_to_node") == outfall_id
-    }
-    # An outfall node can discharge both conduit inflow and P3-generated
-    # lateral inflow injected directly at that node.  The node total inflow
-    # therefore represents the complete external outflow at the outfall;
-    # using only the mapped conduit under-counts the boundary flux.
-    actual_external_outflow_m3 = sum(
-        max(0.0, finite(row.get("total_inflow_cms"))) * hydraulic_seconds
-        for row in node_rows
-        if row["node_id"] == outfall_id
-    )
+    surface_total_depth = max(float(np.max(state["water_depth_m"][surface.valid])) for state in surface.states)
+    max_node_row = max(node_rows, key=lambda row: row["depth_m"], default={})
+    total_returned = surface.total_overflow_return_m3
+    total_unmapped = sum(row["unmapped_overflow_volume_m3"] for row in overflow_rows)
+    # SWMM integrates all external boundary discharge at its adaptive substeps.
+    actual_external_outflow_m3 = measured(native["outflow"])
+    hydraulic_losses = measured(native["evaporation_loss"]) + measured(native["seepage_loss"])
+    other_inflows = sum(measured(native[key]) for key in ("dry_weather_inflow", "wet_weather_inflow",
+                                                          "groundwater_inflow", "II_inflow"))
+    # Toolkit 0.17 exposes routing flux totals in project units and storage in
+    # internal ft³. Use SWMM's own SI UCF(VOLUME), also checked against object volumes.
+    native_budget = budget(native["external_inflow"] + other_inflows,
+                           native["outflow"] + native["flooding"] + hydraulic_losses,
+                           native["initial_storage"] * 0.02832, native["final_storage"] * 0.02832)
     final_timestamp = node_rows[-1]["timestamp"] if node_rows else None
     final_node_storage_m3 = sum(finite(row.get("volume_m3")) for row in node_rows if row["timestamp"] == final_timestamp)
-    final_link_storage_m3 = sum(finite(row.get("volume_m3")) for row in link_rows if row["timestamp"] == final_timestamp)
+    final_link_storage_m3 = sum(row["volume_m3"] for row in link_rows if row["timestamp"] == final_timestamp)
     actual_final_storage_m3 = final_node_storage_m3 + final_link_storage_m3
-    drainage_output_residual = actual_generated_inflow_m3 - actual_external_outflow_m3 - actual_flooding_m3 - actual_final_storage_m3
-    overflow_accounting_residual = actual_flooding_m3 - total_returned - total_unmapped
     drainage_report = report_balance["flow_routing"]
-    drainage_report_residual = (
-        drainage_report["dry_weather_inflow"]
-        + drainage_report["wet_weather_inflow"]
-        + drainage_report["groundwater_inflow"]
-        + drainage_report["rdii_inflow"]
-        + drainage_report["external_inflow"]
-        - drainage_report["external_outflow"]
-        - drainage_report["flooding_loss"]
-        - drainage_report["evaporation_loss"]
-        - drainage_report["exfiltration_loss"]
-        + drainage_report["initial_stored_volume"]
-        - drainage_report["final_stored_volume"]
-    )
-    surface_residual = surface.states[-1]["surface_mass_balance_residual_m3"] if surface.states else 0.0
-    global_residual = surface.total_rainfall_m3 - surface.total_coefficient_loss_m3 - surface.total_infiltration_loss_m3 - surface.total_boundary_outflow_m3 - surface.states[-1]["stored_surface_water_m3"] - actual_external_outflow_m3 - actual_flooding_m3 + total_returned - actual_final_storage_m3
-    hydraulic_continuity_residual = drainage_output_residual
-    unexplained_residual = global_residual - hydraulic_continuity_residual
+    right_in = sum(row["lateral_inflow_cms"] * row["interval_seconds"] for row in node_rows)
+    right_flood = sum(row["flooding_cms"] * row["interval_seconds"] for row in node_rows)
+    right_out = sum(row["total_inflow_cms"] * row["interval_seconds"] for row in node_rows if row["node_id"] == outfall_id)
+    sampled = budget(right_in, right_flood + right_out, initial_drain_storage, actual_final_storage_m3)
+    sampled.update(right_endpoint_inflow_m3=right_in, right_endpoint_flooding_m3=right_flood,
+                   right_endpoint_outfall_m3=right_out)
+    exchange = exchange_budget(net_capture, actual_generated_inflow_m3, actual_flooding_m3,
+                               total_returned, total_unmapped)
+    overflow_accounting_residual = exchange["overflow"]["residual_m3"]
+    ledger = surface_budgets(surface.states, surface.initial_storage_m3)
+    surface_residual = ledger[-1]["cumulative"]["residual_m3"]
+    coupled = budget(surface.total_rainfall_m3 + other_inflows,
+                     surface.total_coefficient_loss_m3 + surface.total_infiltration_loss_m3
+                     + surface.total_boundary_outflow_m3 + actual_external_outflow_m3 + total_unmapped + hydraulic_losses,
+                     surface.initial_storage_m3 + initial_drain_storage,
+                     surface.states[-1]["stored_surface_water_m3"] + actual_final_storage_m3)
+    global_residual = coupled["residual_m3"]
     water_balance = {
         "processing_script": SCRIPT_VERSION,
         "architecture": config["architecture"],
+        "surface_steps": ledger,
+        "exchange_steps": exchange_steps(surface.states, node_rows, overflow_rows),
+        "exchange": exchange,
+        "inlet_reservations": exchange_trace,
+        "sampled_drainage_budget": sampled,
+        "swmm_solver": {"flow_routing_continuity_error_percent": native["routing_error"],
+                        "native_volume_budget": native_budget, "external_inflow_m3": native["external_inflow"],
+                        "native_flooding_m3": native["flooding"], "outfall_m3": native["outflow"],
+                        "other_inflows_m3": other_inflows, "evaporation_and_seepage_m3": hydraulic_losses,
+                        "hydraulic_substeps": len(step_lengths), "elapsed_seconds": sum(step_lengths),
+                        "minimum_step_seconds": min(step_lengths), "maximum_step_seconds": max(step_lengths),
+                        "printed_continuity_percent": drainage_report["continuity_error_percent"],
+                        "printed_volume_residual_m3": drainage_report["computed_residual_m3_from_report_rounding"]},
         "surface_domain": {
             "source": "P3 dynamic surface routing",
             "initial_storage_m3": surface.initial_storage_m3,
@@ -555,14 +570,16 @@ def run_coupling() -> dict:
             "coefficient_loss_m3": surface.total_coefficient_loss_m3,
             "infiltration_loss_m3": surface.total_infiltration_loss_m3,
             "boundary_outflow_m3": surface.total_boundary_outflow_m3,
-            "surface_to_drainage_transfer_m3": surface.total_transfer_m3,
+            "reserved_for_capture_m3": surface.total_transfer_m3,
+            "unused_capture_return_m3": unused_capture,
+            "surface_to_drainage_transfer_m3": net_capture,
             "drainage_to_surface_return_m3": total_returned,
             "final_surface_storage_m3": surface.states[-1]["stored_surface_water_m3"] if surface.states else 0.0,
             "residual_m3": surface_residual,
             "equation": "initial + rainfall - coefficient_loss - infiltration - boundary_outflow - surface_to_drainage + drainage_to_surface = final_surface_storage + residual",
         },
         "drainage_domain": {
-            "source": "P6 extracted SWMM node/link time series at the 30 second hydraulic timestep",
+            "source": "Native per-node integrated admission, adaptive-step flooding and system outfall totals",
             "generated_inflow_m3": actual_generated_inflow_m3,
             "scheduled_surface_to_drainage_transfer_m3": surface.total_transfer_m3,
             "external_outflow_m3": actual_external_outflow_m3,
@@ -572,18 +589,17 @@ def run_coupling() -> dict:
             "final_routing_storage_m3": actual_final_storage_m3,
             "report_section_values": drainage_report,
             "report_continuity_error_percent": drainage_report["continuity_error_percent"],
-            "report_display_residual_m3": drainage_report_residual,
-            "output_table_residual_m3": drainage_output_residual,
+            "report_display_residual_m3": drainage_report["computed_residual_m3_from_report_rounding"],
+            "output_table_residual_m3": sampled["residual_m3"],
             "overflow_accounting_residual_m3": overflow_accounting_residual,
-            "hydraulic_continuity_residual_m3": hydraulic_continuity_residual,
-            "equation": "extracted_generated_inflow - extracted_external_outflow - extracted_flooding_loss - final_node_and_link_storage = output_table_residual",
+            "equation": "output_table_residual_m3 uses right-endpoint samples only. Native volume terms are in swmm_solver.",
         },
         "coupled_domain": {
+            **coupled,
             "global_residual_m3": global_residual,
             "mass_balance_tolerance_m3": config["validation"]["mass_balance_tolerance_m3"],
-            "unexplained_residual_m3": unexplained_residual,
-            "hydraulic_continuity_residual_m3": hydraulic_continuity_residual,
-            "interpretation": "Mapped SWMM flooding is returned to the P3 surface domain; unmapped flooding remains an explicitly recorded drainage-domain sink. The extracted SWMM time series retains a separately reported numerical continuity residual; only the residual after that explicit bucket is classified as unexplained.",
+            "unexplained_residual_m3": global_residual,
+            "interpretation": "Whole-domain closure includes external losses, unmapped flooding and net storage change. Internal capture and return cancel. The legacy unexplained_residual_m3 field aliases gross closure.",
         },
         "p3_reference": {
             "source_summary": str(P3_SUMMARY_PATH.relative_to(ROOT)).replace("\\", "/"),
@@ -596,17 +612,14 @@ def run_coupling() -> dict:
         raise MassBalanceError(f"P6 surface balance residual {surface_residual} m3 exceeds tolerance")
     if abs(overflow_accounting_residual) > float(config["validation"]["mass_balance_tolerance_m3"]):
         raise MassBalanceError(f"P6 overflow accounting residual {overflow_accounting_residual} m3 exceeds tolerance")
-    if abs(unexplained_residual) > float(config["validation"]["mass_balance_tolerance_m3"]):
-        (RESULTS_DIR / "debug_node_rows.json").write_text(json.dumps(node_rows), encoding="utf-8")
-        (RESULTS_DIR / "debug_link_rows.json").write_text(json.dumps(link_rows), encoding="utf-8")
-        (RESULTS_DIR / "debug_overflow_rows.json").write_text(json.dumps(overflow_rows), encoding="utf-8")
-        (RESULTS_DIR / "debug_transfer_rows.json").write_text(json.dumps(surface.transfer_rows), encoding="utf-8")
-        raise MassBalanceError(f"P6 unexplained balance residual {unexplained_residual} m3 exceeds tolerance; raw_global={global_residual}, hydraulic_continuity={hydraulic_continuity_residual}")
+    if abs(exchange["capture"]["residual_m3"]) > float(config["validation"]["mass_balance_tolerance_m3"]):
+        raise MassBalanceError("Surface capture and sampled SWMM lateral inflow exceed the exchange tolerance")
     transfer_fields = ["timestamp", "connection_id", "surface_cell_id", "p4_node_id", "swmm_node_id", "transfer_volume_m3", "pre_transfer_surface_water_m3", "post_transfer_surface_water_m3", "configured_transfer_limit_m3", "configured_transfer_rate_cms", "source", "method"]
     overflow_fields = ["timestamp", "swmm_node_id", "connection_id", "surface_cell_id", "flooding_rate_cms_average", "overflow_volume_m3", "returned_to_surface_volume_m3", "unmapped_overflow_volume_m3", "boundary_source", "source"]
+    transfer_fields.extend(["native_admitted_m3", "closing_reservation_m3", "final_refund_m3"])
     write_csv(SURFACE_TO_SWMM_PATH, surface.transfer_rows, transfer_fields)
     write_csv(SWMM_TO_SURFACE_PATH, overflow_rows, overflow_fields)
-    node_fields = ["timestamp", "node_id", "depth_m", "head_m", "total_inflow_cms", "lateral_inflow_cms", "total_outflow_cms", "flooding_cms", "volume_m3"]
+    node_fields = ["timestamp", "interval_seconds", "node_id", "depth_m", "head_m", "total_inflow_cms", "lateral_inflow_cms", "total_outflow_cms", "flooding_cms", "volume_m3", "flooding_volume_m3", "lateral_inflow_volume_m3"]
     link_fields = ["timestamp", "link_id", "flow_cms", "depth_m", "velocity_mps", "volume_m3"]
     write_csv(RESULTS_DIR / "swmm_node_timeseries.csv", node_rows, node_fields)
     write_csv(RESULTS_DIR / "swmm_link_timeseries.csv", link_rows, link_fields)
@@ -628,9 +641,7 @@ def run_coupling() -> dict:
             dataset.write(np.where(surface.valid, maximum, -9999.0), 1)
             dataset.update_tags(PRODUCT="P6 coupled maximum surface depth", CRS=config["surface_grid"]["crs"], SOURCE="P3_surface_plus_mapped_SWMM_overflow")
     connection_features = []
-    transfer_totals = defaultdict(float)
-    for row in surface.transfer_rows:
-        transfer_totals[row["connection_id"]] += row["transfer_volume_m3"]
+
     for candidate in candidates:
         connection_features.append({"type": "Feature", "id": candidate["connection_id"], "properties": {key: value for key, value in candidate.items() if key not in {"geometry"}}, "geometry": candidate["geometry"]})
     (PREVIEW_DIR / "surface_drainage_connections.geojson").write_text(json.dumps({"type": "FeatureCollection", "name": "p6_surface_drainage_connections", "crs": {"type": "name", "properties": {"name": "EPSG:4326"}}, "features": connection_features}, indent=2) + "\n", encoding="utf-8")
@@ -649,21 +660,24 @@ def run_coupling() -> dict:
     summary = {
         "processing_script": SCRIPT_VERSION,
         "architecture": config["architecture"],
+        "simulation_start": initial_timestamp,
+        "simulation_end": final_timestamp,
         "coupling_timestep_seconds": report_step,
         "p3_routing_timestep_seconds": routing_config["timestep_seconds"],
         "p5_hydraulic_timestep_seconds": hydraulic_step,
         "surface_cells_participating": len(candidates),
         "p4_connection_candidates_used": len(candidates),
-        "swmm_nodes_receiving_surface_inflow": len({row["swmm_node_id"] for row in surface.transfer_rows if row["transfer_volume_m3"] > 0}),
-        "total_surface_to_drainage_transfer_m3": surface.total_transfer_m3,
+        "swmm_nodes_receiving_surface_inflow": len({row["swmm_node_id"] for row in surface.transfer_rows if row["native_admitted_m3"] > 0}),
+        "total_surface_to_drainage_transfer_m3": net_capture,
         "total_drainage_to_surface_overflow_m3": total_returned,
         "unmapped_drainage_overflow_m3": total_unmapped,
         "final_surface_storage_m3": surface.states[-1]["stored_surface_water_m3"],
         "final_drainage_storage_m3": actual_final_storage_m3,
-        "drainage_outflow_m3": actual_external_outflow_m3,
-        "unexplained_residual_m3": unexplained_residual,
+        "unexplained_residual_m3": global_residual,
         "raw_global_balance_residual_m3": global_residual,
-        "hydraulic_continuity_residual_m3": hydraulic_continuity_residual,
+        "swmm_solver_continuity_error_percent": native["routing_error"],
+        "sampled_drainage_residual_m3": sampled["residual_m3"],
+        "drainage_outflow_m3": actual_external_outflow_m3,
         "maximum_coupled_surface_depth_m": surface_total_depth,
         "maximum_coupled_surface_depth_timestamp": surface.maximum_depth_timestamp,
         "maximum_swmm_node": {"node_id": max_node_row.get("node_id"), "maximum_depth_m": max_node_row.get("depth_m", 0.0)},
@@ -672,7 +686,27 @@ def run_coupling() -> dict:
         "rainfall": {"source": rainfall["source"], "historical": False, "total_rainfall_mm": sum(float(item["rainfall_mm"]) for item in rainfall_records)},
         "outputs": {"surface_to_swmm": str(SURFACE_TO_SWMM_PATH.relative_to(ROOT)).replace("\\", "/"), "swmm_to_surface": str(SWMM_TO_SURFACE_PATH.relative_to(ROOT)).replace("\\", "/"), "coupled_surface_depth": str(DEPTH_DIR.relative_to(ROOT)).replace("\\", "/"), "coupled_max_depth": str((RESULTS_DIR / "coupled_max_depth.tif").relative_to(ROOT)).replace("\\", "/"), "coupling_water_balance": str(WATER_BALANCE_PATH.relative_to(ROOT)).replace("\\", "/"), "validation": str(VALIDATION_PATH.relative_to(ROOT)).replace("\\", "/")},
     }
+    tolerance = float(config["validation"]["mass_balance_tolerance_m3"])
+    # EPA massbal_getFlowError uses a tiny sentinel below one internal cubic foot.
+    hydraulic_input = native_budget["input_m3"] + native_budget["initial_storage_m3"]
+    hydraulic_output = native_budget["output_m3"] + native_budget["final_storage_m3"]
+    denominator = hydraulic_input or hydraulic_output
+    native_percent = (1e-6 if abs(native_budget["residual_m3"]) < 0.02832
+                      else 100 * native_budget["residual_m3"] / denominator)
+    volume_limit = max(tolerance, denominator * config["validation"]["solver_continuity_limit_percent"] / 100)
+    water_balance["coupled_domain"]["solver_volume_limit_m3"] = volume_limit
+    checks = water_balance["exchange_steps"]
     validation = {
+        "native_solver_continuity_within_limit": abs(native["routing_error"]) <= config["validation"]["solver_continuity_limit_percent"],
+        "native_component_totals_match": max(abs(actual_generated_inflow_m3 - native["external_inflow"]),
+            abs(actual_flooding_m3 - native["flooding"]), abs(initial_drain_storage - native_budget["initial_storage_m3"]),
+            abs(actual_final_storage_m3 - native_budget["final_storage_m3"])) <= tolerance,
+        "native_and_coupled_ledgers_reconcile": abs(global_residual - native_budget["residual_m3"]) <= tolerance,
+        "each_surface_step_within_tolerance": all(abs(row["step"]["residual_m3"]) <= tolerance for row in ledger),
+        "each_exchange_within_tolerance": all(abs(row["step"][direction]["residual_m3"]) <= tolerance
+            for row in checks for direction in ("capture", "overflow")),
+        "unrounded_solver_percent_matches_native_budget": abs(native["routing_error"] - native_percent) <= 1e-7,
+        "whole_domain_within_solver_volume_limit": abs(global_residual) <= volume_limit,
         "test_status": "PASS",
         "surface_connection_candidates": len(candidates),
         "valid_p4_nodes": True,
@@ -687,8 +721,9 @@ def run_coupling() -> dict:
         "no_duplicate_rainfall_counting": config["architecture"]["p5_subcatchment_rainfall_disabled"] and all(float(line.split()[-1]) == 0.0 for line in COUPLED_MODEL_PATH.read_text(encoding="utf-8").splitlines() if line.startswith("SyntheticStorm")),
         "surface_mass_balance_within_tolerance": abs(surface_residual) <= float(config["validation"]["mass_balance_tolerance_m3"]),
         "overflow_accounting_within_tolerance": abs(overflow_accounting_residual) <= float(config["validation"]["mass_balance_tolerance_m3"]),
-        "global_mass_balance_within_tolerance": abs(unexplained_residual) <= float(config["validation"]["mass_balance_tolerance_m3"]),
-        "hydraulic_continuity_residual_recorded": True,
+        "strict_global_volume_diagnostic": {"within_0_001_m3": abs(global_residual) <= tolerance,
+            "residual_m3": global_residual, "tolerance_m3": tolerance},
+        "capture_exchange_within_tolerance": abs(exchange["capture"]["residual_m3"]) <= float(config["validation"]["mass_balance_tolerance_m3"]),
         "p3_reference_validation_pass": p3_validation["test_status"] == "PASS",
         "p5_nodes_simulated": assessment["simulated_totals"]["nodes"],
         "p5_links_simulated": assessment["simulated_totals"]["links"],
@@ -696,6 +731,8 @@ def run_coupling() -> dict:
         "outputs": {"surface_to_swmm": str(SURFACE_TO_SWMM_PATH.relative_to(ROOT)).replace("\\", "/"), "swmm_to_surface": str(SWMM_TO_SURFACE_PATH.relative_to(ROOT)).replace("\\", "/"), "summary": str(SUMMARY_PATH.relative_to(ROOT)).replace("\\", "/"), "water_balance": str(WATER_BALANCE_PATH.relative_to(ROOT)).replace("\\", "/")},
         "limitations": ["P4 connection candidates are terrain-inferred and not surveyed inlets.", "Transfer capacity is a configurable model assumption, not a municipal capacity.", "The derived coupling SWMM input disables rainfall and uses generated inflows from P3 surface excess.", "SWMM flooding without a mapped P4 surface connection is recorded but not placed on the surface.", "P5 node depth is not interpreted as surface flood depth."],
     }
+    validation["test_status"] = "PASS" if all(v for v in validation.values() if isinstance(v, bool)) else "FAIL"
+    summary.update(run_id=run_id, validation_status=validation["test_status"], p3_run_id=p3_summary.get("run_id"))
     SUMMARY_PATH.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     WATER_BALANCE_PATH.write_text(json.dumps(water_balance, indent=2) + "\n", encoding="utf-8")
     VALIDATION_PATH.write_text(json.dumps(validation, indent=2) + "\n", encoding="utf-8")

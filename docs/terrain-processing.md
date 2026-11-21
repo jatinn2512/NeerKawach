@@ -25,13 +25,13 @@ max_lat 12.945
 max_lon 77.670
 ```
 
-The source values are copied into GeoTIFFs at the native posting interval. No reprojection, resampling, interpolation, or elevation modification is performed. The final clipped raster is exactly 72 × 72 pixels with exact bounds `77.650, 12.925, 77.670, 12.945` and a 1 arc-second transform.
+The native GeoTIFFs copy HGT postings at one arc-second. The crop rounds outward to cell edges so the 73 × 73 raster covers the canonical bbox. Its boundary postings fall on the requested geographic limits.
 
 ## Outputs
 
 - [`data/dem/processed/bellandur_dem_source.tif`](../data/dem/processed/bellandur_dem_source.tif): full 1° source tile converted to GeoTIFF; 3601 × 3601.
-- [`data/dem/processed/bellandur_dem_buffered.tif`](../data/dem/processed/bellandur_dem_buffered.tif): native-grid 300 m buffered working raster; 92 × 92; aligned extent approximately `77.647222, 12.922222, 77.672778, 12.947778`.
-- [`data/dem/processed/bellandur_dem_clipped.tif`](../data/dem/processed/bellandur_dem_clipped.tif): exact canonical Bellandur raster; 72 × 72; extent `77.650000, 12.925000, 77.670000, 12.945000`.
+- The 300 m buffered DEM contains 93 × 93 native cells. [Buffered GeoTIFF](../data/dem/processed/bellandur_dem_buffered.tif)
+- The canonical crop contains 73 × 73 native cells. Its bounds in degrees are approximately `77.649861, 12.924861, 77.670139, 12.945139`. [Clipped GeoTIFF](../data/dem/processed/bellandur_dem_clipped.tif)
 - [`data/dem/metadata/bellandur_dem_processed.json`](../data/dem/metadata/bellandur_dem_processed.json): processing metadata and validation report.
 
 All prepared rasters use EPSG:4326, signed 16-bit elevation values, nodata `-32768`, and a pixel interval of `0.0002777777777777778°`. At Bellandur latitude this is approximately 30.14 m east-west by 30.92 m north-south; the source is commonly described as approximately 30 m SRTM resolution.
@@ -55,14 +55,14 @@ The report verifies:
 - Raster dimensions and transform are present.
 - Pixel size matches the 1 arc-second source interval.
 - Buffered and clipped rasters cover the canonical bbox.
-- The clipped extent is exactly the canonical bbox after grid alignment.
+- The smallest outward-rounded native window covers the canonical bbox.
 - Nodata is preserved as `-32768`.
 - Minimum and maximum elevation are computed from valid pixels.
 - Valid-pixel count and nodata-pixel count are recorded.
 - The final clipped raster has no empty pixels.
 - The original compressed HGT remains present.
 
-The clipped DEM elevation range is 869–899 m, with 5,184 valid pixels and no nodata pixels. This is a preparation-quality check only; it is not a claim about flood-model accuracy or terrain-model accuracy.
+The clipped DEM contains 5,329 valid elevations from 869 to 899 m and zero nodata cells. These checks establish registration and file integrity. Assessing vertical accuracy requires independent measurements.
 
 ## Limitations and boundary for the next phase
 
@@ -70,7 +70,7 @@ SRTM is a regional elevation product rather than a surveyed urban drainage surfa
 
 ## Terrain derivatives
 
-The derivative script is [`scripts/data/derive_terrain.py`](../scripts/data/derive_terrain.py). It uses the buffered DEM [`data/dem/processed/bellandur_dem_buffered.tif`](../data/dem/processed/bellandur_dem_buffered.tif), never the clipped 72 × 72 DEM as its primary input. The buffered source is validated before processing and its SHA-256 hash is checked again after processing.
+The derivative script is [`scripts/data/derive_terrain.py`](../scripts/data/derive_terrain.py). It uses the buffered DEM [`data/dem/processed/bellandur_dem_buffered.tif`](../data/dem/processed/bellandur_dem_buffered.tif), never the clipped 73 × 73 DEM as its primary input. The buffered source is validated before processing and its SHA-256 hash is checked again after processing.
 
 The data-processing stack is isolated in [`scripts/requirements-data.txt`](../scripts/requirements-data.txt): rasterio for GeoTIFF I/O/georeferencing and NumPy for array calculations. Backend dependencies remain unchanged.
 
@@ -129,7 +129,7 @@ The GeoJSON contains the raw sink cells with elevation and classification proper
 
 The machine-readable report is [`data/dem/metadata/terrain_derivatives.json`](../data/dem/metadata/terrain_derivatives.json). It records source DEM hash, CRS, transform, resolution, extents, nodata, algorithms, output ranges and validation results.
 
-All derivative rasters preserve the source DEM's EPSG:4326 CRS, 92 × 92 dimensions, transform and 1-arc-second pixel spacing. Validation confirmed:
+All derivative rasters use the buffered DEM’s 93 × 93 EPSG:4326 grid with one arc-second spacing. The regeneration verified the following properties.
 
 - source buffered DEM unchanged;
 - CRS and transform alignment across every raster;
@@ -138,9 +138,9 @@ All derivative rasters preserve the source DEM's EPSG:4326 CRS, 92 × 92 dimensi
 - aspect range 0–358.633 degrees for defined aspects;
 - flow accumulation range 1–67 contributing cells;
 - depression codes restricted to 0–3 with nodata 255;
-- 8,464 valid cells for flow direction, accumulation and depression outputs;
+- 8,649 valid cells for flow direction, accumulation and depression outputs
 - no unexpected empty cells in those outputs.
 
-Slope and aspect intentionally contain nodata on the 364-cell outer kernel border, plus undefined flat aspects. No preview PNGs were created because the requested GIS-ready rasters and GeoJSON are sufficient for this small processing stage.
+Slope has 368 nodata cells along the kernel border. Aspect also has undefined values on flats, for 1,350 nodata cells in total. [Phase 1 verification](../NEERKAWACH_PHASE_1_REPORT.md)
 
 The exact next step is P3 — Dynamic Surface-Water Routing, using these products as static terrain inputs. That phase must separately define how raw sinks, accumulation thresholds, rainfall and urban drainage constraints are handled.

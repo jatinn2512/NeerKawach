@@ -59,9 +59,20 @@ class CouplingTests(unittest.TestCase):
         cls.node_rows = load_csv(RESULTS / "swmm_node_timeseries.csv")
         cls.link_rows = load_csv(RESULTS / "swmm_link_timeseries.csv")
 
-    def test_generated_validation_passes(self):
+    def test_validation_reports_measured_closure(self):
+        actual = self.balance["coupled_domain"]["global_residual_m3"]
+        closes = abs(actual) <= self.config["validation"]["mass_balance_tolerance_m3"]
+        self.assertEqual(self.validation["strict_global_volume_diagnostic"]["within_0_001_m3"], closes)
+        native = self.balance["swmm_solver"]
+        self.assertAlmostEqual(actual, native["native_volume_budget"]["residual_m3"], delta=0.001)
+        limit = self.config["validation"]["solver_continuity_limit_percent"]
+        self.assertEqual(self.validation["native_solver_continuity_within_limit"],
+                         abs(native["flow_routing_continuity_error_percent"]) <= limit)
+        self.assertEqual(self.validation["whole_domain_within_solver_volume_limit"],
+                         abs(actual) <= self.balance["coupled_domain"]["solver_volume_limit_m3"])
         self.assertEqual(self.validation["test_status"], "PASS")
-        self.assertTrue(self.validation["global_mass_balance_within_tolerance"])
+        self.assertTrue(all(value for value in self.validation.values() if isinstance(value, bool)))
+        self.assertTrue(self.validation["capture_exchange_within_tolerance"])
         self.assertTrue(self.validation["overflow_accounting_within_tolerance"])
 
     def test_existing_p4_candidates_are_the_only_connections(self):
@@ -94,7 +105,11 @@ class CouplingTests(unittest.TestCase):
         self.assertEqual(len({row["timestamp"] for row in self.link_rows}), 120)
 
     def test_overflow_is_fully_partitioned(self):
-        flooding = sum(float(row["flooding_cms"]) * 30.0 for row in self.node_rows)
+        flooding = sum(float(row["flooding_volume_m3"]) for row in self.node_rows)
+        self.assertAlmostEqual(flooding, self.balance["swmm_solver"]["native_flooding_m3"], places=6)
+        coarse = sum(float(row["flooding_cms"]) * float(row["interval_seconds"]) for row in self.node_rows)
+        self.assertGreater(abs(coarse - flooding), 0.001)
+        self.assertAlmostEqual(coarse, self.balance["sampled_drainage_budget"]["right_endpoint_flooding_m3"])
         overflow = sum(float(row["overflow_volume_m3"]) for row in self.overflow)
         returned = sum(float(row["returned_to_surface_volume_m3"]) for row in self.overflow)
         unmapped = sum(float(row["unmapped_overflow_volume_m3"]) for row in self.overflow)
@@ -104,8 +119,27 @@ class CouplingTests(unittest.TestCase):
     def test_surface_and_drainage_balances_are_reported(self):
         self.assertAlmostEqual(self.balance["surface_domain"]["residual_m3"], 0.0, places=6)
         self.assertAlmostEqual(self.balance["drainage_domain"]["overflow_accounting_residual_m3"], 0.0, places=6)
-        self.assertAlmostEqual(self.balance["coupled_domain"]["unexplained_residual_m3"], 0.0, places=6)
-        self.assertGreater(abs(self.balance["coupled_domain"]["hydraulic_continuity_residual_m3"]), 0.0)
+        whole = self.balance["coupled_domain"]
+        self.assertAlmostEqual(whole["global_residual_m3"], whole["input_m3"] - whole["output_m3"] - whole["storage_change_m3"])
+        self.assertEqual(whole["unexplained_residual_m3"], whole["global_residual_m3"])
+        self.assertAlmostEqual(self.balance["swmm_solver"]["flow_routing_continuity_error_percent"],
+                               self.balance["drainage_domain"]["report_section_values"]["continuity_error_percent"],
+                               delta=0.0005)
+
+    def test_every_connection_funds_its_own_native_debits(self):
+        balances = {}
+        native = self.balance["swmm_solver"]
+        for row in self.transfer:
+            key = row["connection_id"]
+            remaining = balances.get(key, 0) + float(row["transfer_volume_m3"]) - float(row["native_admitted_m3"])
+            self.assertAlmostEqual(remaining, float(row["closing_reservation_m3"]))
+            self.assertGreaterEqual(remaining, -1e-9)
+            balances[key] = remaining - float(row["final_refund_m3"])
+        self.assertTrue(all(abs(value) < 1e-9 for value in balances.values()))
+        admitted = sum(float(row["native_admitted_m3"]) for row in self.transfer)
+        self.assertAlmostEqual(admitted, native["external_inflow_m3"], places=6)
+        self.assertAlmostEqual(native["elapsed_seconds"], 3600)
+        self.assertGreater(native["hydraulic_substeps"], len({r["timestamp"] for r in self.node_rows}))
 
     def test_rainfall_is_owned_by_p3_only(self):
         self.assertTrue(self.config["architecture"]["p5_subcatchment_rainfall_disabled"])
