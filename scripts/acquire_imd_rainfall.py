@@ -11,7 +11,7 @@ import argparse
 import csv
 import json
 import math
-import struct
+import sys
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -19,36 +19,20 @@ from pathlib import Path
 
 from p1_common import ROOT, load_study_area
 
+sys.path.insert(0, str(ROOT / "backend"))
+from app.rainfall.providers.imd import decode_values, read_control
+
 
 BASE_URL = "https://www.imdpune.gov.in/cmpg/Realtimedata/gpm/"
 RAW_DIR = ROOT / "data" / "rainfall" / "raw" / "imd"
 PROCESSED_DIR = ROOT / "data" / "rainfall" / "processed"
 METADATA_DIR = ROOT / "data" / "rainfall" / "metadata"
-NX, NY = 241, 281
-X0, Y0, STEP = 50.0, -30.0, 0.25
 
 
 def fetch_bytes(url: str, data: bytes | None = None) -> bytes:
     request = urllib.request.Request(url, data=data, headers={"User-Agent": "Neer Kawach-P1/1.0"})
     with urllib.request.urlopen(request, timeout=180) as response:
         return response.read()
-
-
-def decode_values(payload: bytes) -> tuple[str, list[float]]:
-    if len(payload) != NX * NY * 4:
-        raise ValueError(f"Expected {NX * NY * 4} bytes, received {len(payload)}")
-    candidates = []
-    for endian in ("<", ">"):
-        values = list(struct.unpack(f"{endian}{NX * NY}f", payload))
-        usable = [value for value in values if math.isfinite(value) and -999.1 <= value <= 10000]
-        candidates.append((len(usable), endian, values))
-    _, endian, values = max(candidates, key=lambda item: item[0])
-    return endian, values
-
-
-def cell_intersects(lat: float, lon: float, bbox: dict) -> bool:
-    half = STEP / 2
-    return not (lat + half < bbox["min_lat"] or lat - half > bbox["max_lat"] or lon + half < bbox["min_lon"] or lon - half > bbox["max_lon"])
 
 
 def main() -> None:
@@ -73,24 +57,21 @@ def main() -> None:
     if args.force or not ctl_path.exists():
         ctl_path.write_bytes(fetch_bytes(BASE_URL + "dataddmmyyyy.php"))
     payload = raw_path.read_bytes()
-    endian, values = decode_values(payload)
+    grid = read_control(ctl_path, "EPSG:4326")
+    endian, values = decode_values(payload, grid.width, grid.height)
     rows = []
-    for row in range(NY):
-        latitude = Y0 + row * STEP
-        for column in range(NX):
-            longitude = X0 + column * STEP
-            if not cell_intersects(latitude, longitude, area["bbox"]):
-                continue
-            rainfall = values[row * NX + column]
-            if not math.isfinite(rainfall) or rainfall <= -998:
-                continue
-            rows.append({
-                "timestamp": f"{date_value.isoformat()}T00:00:00Z",
-                "latitude": f"{latitude:.2f}",
-                "longitude": f"{longitude:.2f}",
-                "rainfall_mm": f"{rainfall:.3f}",
-                "source": "imd_ncmrwf_gpm_merged_daily",
-            })
+    for row, column in grid.intersecting_pixels(area["bbox"]):
+        longitude, latitude = grid.pixel(row, column)["center"]
+        rainfall = values[row * grid.width + column]
+        if not math.isfinite(rainfall) or rainfall < 0 or rainfall == grid.nodata:
+            continue
+        rows.append({
+            "timestamp": f"{date_value.isoformat()}T00:00:00Z",
+            "latitude": f"{latitude:.2f}",
+            "longitude": f"{longitude:.2f}",
+            "rainfall_mm": f"{rainfall:.3f}",
+            "source": "imd_ncmrwf_gpm_merged_daily",
+        })
     if not rows:
         raise ValueError("No valid IMD grid cells intersected the Bellandur bbox")
     with output_path.open("w", newline="", encoding="utf-8") as handle:
@@ -110,7 +91,7 @@ def main() -> None:
         "format": "raw float32 binary grid plus provider control file",
         "crs": "EPSG:4326",
         "grid_crs_description": "Geographic longitude/latitude grid",
-        "grid_definition": {"nx": NX, "ny": NY, "x0": X0, "y0": Y0, "step": STEP, "cell_selection": "cells whose 0.25-degree footprints intersect the canonical bbox"},
+        "grid_definition": {"nx": grid.width, "ny": grid.height, "x0": grid.west + grid.dx / 2, "y0": grid.origin_y + grid.dy / 2, "step": grid.dx, "cell_selection": "cells whose 0.25-degree footprints intersect the canonical bbox"},
         "raw_files": [str(raw_path.relative_to(ROOT)).replace("\\", "/"), str(ctl_path.relative_to(ROOT)).replace("\\", "/")],
         "processed_file": str(output_path.relative_to(ROOT)).replace("\\", "/"),
         "study_area": area["bbox"],

@@ -10,5 +10,24 @@
       "status": "configured_window",
       "note": "This is a reproducible analysis window, not a claim that all dates are one flood event."
     }
-  ]
+  ],
+  "temporal_processing": {
+    "analysis_window_id": "bellandur_2022-08-30_to_2022-09-07",
+    "archive_as_of_utc": "2026-11-22T00:00:00Z",
+    "source": "mosdac_insat3dr",
+    "events": [
+      {
+        "id": "bellandur_2022-09-01",
+        "role": "primary",
+        "first_label_utc": "2022-08-31T22:15:00Z",
+        "last_label_utc": "2022-09-01T16:45:00Z"
+      },
+      {
+        "id": "bellandur_2022-08-31",
+        "role": "alternative",
+        "first_label_utc": "2022-08-30T22:15:00Z",
+        "last_label_utc": "2022-08-31T16:45:00Z"
+      }
+    ]
+  }
 }

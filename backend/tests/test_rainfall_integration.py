@@ -48,8 +48,12 @@ def test_resolver_prefers_validated_mosdac_for_historical_data() -> None:
 
 
 def test_current_resolver_keeps_historical_mosdac_out_of_forecast_mode() -> None:
-    result = resolve_quantitative_source(mode="current")
-    assert result["source_used"] == "open_meteo_precipitation_forecast"
+    from datetime import datetime, timezone
+    from app.rainfall.resolver import source_status
+
+    statuses = source_status(datetime(2099, 1, 1, tzinfo=timezone.utc))
+    result = resolve_quantitative_source(mode="current", statuses=statuses)
+    assert result["source_used"] is None
     assert result["source_requested"] == "auto"
     assert result["fallback"] is False
     assert "mosdac_insat3dr" not in result["priority"]

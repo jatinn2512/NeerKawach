@@ -21,11 +21,15 @@ class LocalFileProvider:
     def files(self) -> list[Path]:
         if not self.root.exists():
             return []
-        return sorted(path for path in self.root.rglob("*") if path.is_file())
+        formats = getattr(self, "supported_formats", (".csv",))
+        return sorted(path for path in self.root.rglob("*") if path.is_file() and path.suffix.lower() in formats)
 
     def availability(self) -> dict[str, Any]:
         files = self.files()
-        return {"source_id": self.source_id, "available": bool(files), "status": "available" if files else "configured", "files": [path.as_posix() for path in files]}
+        usable = any(path.suffix.lower() == ".csv" for path in files)
+        status = "available" if usable else "available_raw_unprocessed" if files else "unavailable"
+        return {"source_id": self.source_id, "available": bool(files), "usable": usable,
+                "status": status, "files": [path.as_posix() for path in files]}
 
     def read_csv(self, path: Path, *, bbox: dict[str, float] | None = None) -> list[RainfallRecord]:
         if path.parent != self.root and self.root not in path.parents:

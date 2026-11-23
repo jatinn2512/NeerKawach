@@ -30,6 +30,22 @@ Supported inputs:
 
 The default fixture is [`data/surface_routing/tests/synthetic_rainfall.json`](../data/surface_routing/tests/synthetic_rainfall.json). It is explicitly labeled `source = synthetic_test` and is not observed rainfall, IMD rainfall, DWR/QPE, IMERG, or a historical Bellandur storm. The currently acquired P1 IMD/NCMRWF product is daily and 0.25°, so it is not used to claim sub-hourly nowcasting.
 
+## Historical MOSDAC replay
+
+From the repository root, run the P3 engine on the published Task 2.4 event with the data-processing Python environment.
+
+```powershell
+python -B scripts/data/run_surface_routing.py --temporal-manifest data/rainfall/temporal/068d3d77a49c5602/manifest.json --event bellandur_2022-09-01
+```
+
+The same manifest contains the alternative event `bellandur_2022-08-31`. Each invocation creates a new `data/runs/<run-id>/manifest.json` and writes its products in the neighbouring `results/` directory. The historical path reads the existing projected terrain and flow direction. Running the CLI without historical arguments selects the existing synthetic fixture and its normal output location.
+
+The adapter verifies the selected event, its checksummed temporal and spatial products, source labels and native pixels before starting P3. Each band holds allocated depth in mm for one 300-second interval. The adapter divides by 1,000 once to supply Float64 metres. A valid dry cell stays zero. P3 requires finite inputs everywhere, so the adapter represents an excluded terrain cell with the finite sentinel −1 outside the valid mask. The engine clears excluded cells before any rainfall arithmetic. A source-coverage gap on valid terrain stops the run.
+
+Each input band has a relative start and end in seconds. A saved state and its `TIMESTAMP` tag identify the **end** of that step. The summary links each state to its original source label. Absolute UTC bounds for the underlying MOSDAC rainfall intervals are unknown.
+
+The pre-run rainfall check integrates the mm bands with the spatial product's covered area. P3 calculates a second total from its metre inputs and grid-cell area. The per-step and total comparisons use an absolute tolerance of 1e−7 m³. The model's gross balance has its own configured tolerance of 1e−6 m³. The manifest records both checks, the configuration's SHA-256 version, the input bands and files, and the checksums of the outputs. The native rainfall resolution is approximately 4 km. Each of the six five-minute allocations within a nominal half-hour has the same intensity.
+
 ## Runoff formulation
 
 Parameters are explicit in [`config/surface_routing.json`](../config/surface_routing.json):

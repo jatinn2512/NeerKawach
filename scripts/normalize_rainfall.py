@@ -21,7 +21,7 @@ def parse_timestamp(value: str) -> str:
     text = value.strip().replace("Z", "+00:00")
     parsed = datetime.fromisoformat(text)
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
+        raise ValueError("timestamp has no timezone; use the daily statement reader for provider dates")
     return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 

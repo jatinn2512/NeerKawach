@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import math
 import os
 import platform
 import re
@@ -80,9 +81,12 @@ def file_record(root, path):
         import rasterio
         with rasterio.open(path) as src:
             tags = src.tags()
+            nodata = src.nodata
+            if nodata is not None and not math.isfinite(nodata):
+                nodata = str(nodata)  # Preserve the raster sentinel in strict JSON.
             info.update(spatial={"crs": str(src.crs) if src.crs else None,
                                  "bounds": list(src.bounds), "affine": list(src.transform)[:6],
-                                 "shape": [src.height, src.width], "dtype": src.dtypes[0], "nodata": src.nodata},
+                                 "shape": [src.height, src.width], "dtype": src.dtypes[0], "nodata": nodata},
                         units=tags.get("UNITS") or src.units[0],
                         provider=tags.get("SOURCE") or tags.get("SOURCE_DEM") or tags.get("SOURCE_FILE"),
                         temporal_coverage=[tags["TIMESTAMP"]]*2 if tags.get("TIMESTAMP") else None)
@@ -168,9 +172,9 @@ def product_lock(directory):
 
 
 def write_new(path, record):
+    payload = json.dumps(safe_config(record), indent=2, sort_keys=True, allow_nan=False)
     with path.open("x", encoding="utf-8", newline="\n") as stream:
-        json.dump(safe_config(record), stream, indent=2, sort_keys=True, allow_nan=False)
-        stream.write("\n")
+        stream.write(payload + "\n")
 
 
 @contextmanager

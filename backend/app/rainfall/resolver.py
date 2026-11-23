@@ -1,85 +1,115 @@
-"""Deterministic quantitative-source selection with explicit fallback provenance."""
-
+"""Source-specific local discovery, availability and quantitative-source selection."""
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from app.config import get_settings
-
+from app.rainfall.providers.imd import daily_metadata_path
+from app.rainfall_sources import OPEN_METEO_SOURCE, OpenMeteoClient, RainfallSourceError, utc_now
 from .registry import load_registry
-
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def _matching_files(directory: object, pattern: object = None) -> list[Path]:
-    if not isinstance(directory, str):
+def _matching_files(directory: str | None, pattern: str) -> list[Path]:
+    if not directory:
         return []
-    root = ROOT / directory
-    if not root.exists():
-        return []
-    if isinstance(pattern, str):
-        return [path for path in root.glob(pattern) if path.is_file()]
-    return [path for path in root.rglob("*") if path.is_file() and path.suffix.lower() in {".csv", ".json", ".tif", ".tiff", ".h5", ".hdf5", ".nc", ".grd"}]
+    return sorted(p for p in (ROOT / directory).glob(pattern) if p.is_file())
 
 
-def _files_for(source_id: str, config: dict[str, Any]) -> tuple[list[Path], list[Path]]:
-    processed = _matching_files(config.get("processed_directory"), config.get("processed_file_pattern"))
-    raw = _matching_files(config.get("raw_directory"), config.get("raw_file_pattern"))
+def source_files(config: dict) -> tuple[list[Path], list[Path]]:
+    raw = _matching_files(config.get("raw_directory"), config.get("raw_file_pattern", "**/*"))
+    raw = [p for p in raw if p.suffix.lower() in {".csv", ".json", ".tif", ".tiff", ".h5", ".hdf5", ".nc", ".grd"}]
+    raw.extend(_matching_files(config.get("statement_directory"), config.get("statement_pattern", "*.csv")))
+    processed = _matching_files(config.get("processed_directory"), config.get("processed_file_pattern", "**/*.csv"))
     return raw, processed
 
 
-def _source_status(source_id: str, config: dict[str, Any]) -> dict[str, Any]:
-    settings = get_settings()
-    enabled = bool(config.get("enabled", False))
-    raw_files, processed_files = _files_for(source_id, config)
-    files = raw_files + processed_files
-    if source_id == "dwr_qpe":
-        available, status, reason = False, "reserved", "authorized IMD DWR access is not configured"
-    elif source_id == "open_meteo_precipitation_forecast":
-        available, status, reason = bool(settings.open_meteo_enabled), ("available" if settings.open_meteo_enabled else "disabled"), "public source configured" if settings.open_meteo_enabled else "disabled by configuration"
+def _source_status(source_id: str, config: dict[str, Any], as_of: datetime) -> dict:
+    raw, processed = source_files(config)
+    enabled = bool(config.get("enabled"))
+    status = "available" if processed else "available_raw_unprocessed" if raw else "unavailable"
+    usable = bool(processed)
+    reason = {"available": "normalized records found", "available_raw_unprocessed": "raw data requires a reader",
+              "unavailable": "no local rainfall records found"}[status]
+    current = False
+    detail = {}
+    if source_id == OPEN_METEO_SOURCE:
+        enabled = enabled and get_settings().open_meteo_enabled
+        try:
+            archive = OpenMeteoClient.read_archive(raw, processed, ROOT / "data/rainfall/metadata", as_of=as_of)
+            usable = bool(archive.records)
+            current = any(c["current_usable"] for c in archive.captures)
+            if usable:
+                status = "available" if current else "stale" if all(c["expired"] for c in archive.captures) else "unavailable_as_of"
+                reason = "stored forecast validity checked against the current UTC time"
+            detail = {"capture_count": len(archive.captures),
+                      "distinct_series_count": len({c["series_id"] for c in archive.captures}),
+                      "last_valid_utc": max((c["last_valid_utc"] for c in archive.captures), default=None)}
+        except (OSError, ValueError, TypeError, KeyError, RainfallSourceError) as exc:
+            status, usable, reason = "invalid", False, str(exc)
+    elif source_id == "arg_aws" and any(p.match(config["statement_pattern"]) for p in raw):
+        status, usable, reason = "available", True, "historical daily station statement for regional comparison"
+    elif source_id == "imd_ncmrwf_gpm_merged_daily" and raw:
+        try:
+            usable = all((p.parent / "imd_gpm_template.ctl").is_file() and
+                         daily_metadata_path(p, ROOT / "data/rainfall/metadata").is_file() for p in raw)
+        except ValueError:
+            usable = False
+        status = "available" if usable else "incomplete"
+        reason = "local daily grid, control and acquisition metadata required"
+    elif source_id == "dwr_qpe":
+        status, usable, reason = "reserved", False, "authorized IMD DWR access is not configured"
     elif source_id == "rainviewer_radar_observations":
-        available, status, reason = bool(settings.rainviewer_enabled), ("available" if settings.rainviewer_enabled else "disabled"), "radar observation metadata configured" if settings.rainviewer_enabled else "disabled by configuration"
-    elif processed_files:
-        available, status, reason = True, "available", f"{len(processed_files)} normalized source file(s) found"
-    elif raw_files:
-        available, status, reason = True, "available_raw_unprocessed", f"{len(raw_files)} raw source file(s) found; normalization is required"
-    else:
-        available, status, reason = False, ("configured" if enabled else "disabled"), "no local source file is available"
-    usable = bool(processed_files) if source_id not in {"open_meteo_precipitation_forecast", "rainviewer_radar_observations", "dwr_qpe"} else available
-    return {"source_id": source_id, "name": config.get("name"), "provider": config.get("provider"), "product": config.get("product"), "role": config.get("role"), "enabled": enabled, "available": available, "usable": usable, "status": status, "reason": reason, "historical_available": config.get("historical_available", True), "historical_coverage_start_utc": config.get("historical_coverage_start_utc"), "historical_coverage_end_utc": config.get("historical_coverage_end_utc"), "raw_file_count": len(raw_files), "processed_file_count": len(processed_files), "local_files": [str(path.relative_to(ROOT)).replace("\\", "/") for path in files]}
+        enabled = enabled and get_settings().rainviewer_enabled
+        usable, reason = False, "radar timeline references only"
+    if not enabled and status != "reserved":
+        status, usable, current, reason = "disabled", False, False, "disabled by configuration"
+    return {"source_id": source_id, "name": config.get("name"), "provider": config.get("provider"),
+            "product": config.get("product"), "role": config.get("role"), "enabled": enabled,
+            "available": enabled and bool(raw or processed) and status != "invalid",
+            "usable": usable, "current_usable": current, "status": status, "reason": reason, **detail,
+            "historical_available": config.get("historical_available", True),
+            "historical_coverage_start_utc": config.get("historical_coverage_start_utc"),
+            "historical_coverage_end_utc": config.get("historical_coverage_end_utc"),
+            "raw_file_count": len(raw), "processed_file_count": len(processed),
+            "local_files": [p.relative_to(ROOT).as_posix() for p in raw + processed]}
 
 
-def source_status() -> list[dict[str, Any]]:
+def source_status(as_of: datetime | None = None) -> list[dict[str, Any]]:
+    now = as_of or utc_now()
+    return [_source_status(key, config, now) for key, config in load_registry()["sources"].items()]
+
+
+def resolve_quantitative_source(requested: str | None = None, mode: str = "historical",
+                                start_utc: str | None = None, end_utc: str | None = None,
+                                *, statuses: list[dict] | None = None) -> dict:
     registry = load_registry()
-    return [_source_status(source_id, config) for source_id, config in registry["sources"].items()]
-
-
-def resolve_quantitative_source(requested: str | None = None, mode: str = "historical", start_utc: str | None = None, end_utc: str | None = None) -> dict[str, Any]:
-    registry = load_registry()
-    priority_key = "current_forecast_priority" if mode in {"current", "forecast"} else "default_quantitative_priority"
-    configured_priority = list(registry[priority_key])
+    live = mode in {"current", "forecast"}
+    priority = list(registry["current_forecast_priority" if live else "default_quantitative_priority"])
     if requested:
-        priority = [requested, *[source_id for source_id in configured_priority if source_id != requested]]
-    else:
-        priority = configured_priority
-    source_requested = requested or "auto"
-    statuses = {item["source_id"]: item for item in source_status()}
-    fallback_reasons: list[str] = []
-    for source_id in priority:
-        item = statuses.get(source_id)
-        if item and item["usable"]:
-            if mode == "historical" and not item.get("historical_available", True):
-                fallback_reasons.append(f"{source_id}: source is not a historical dataset")
+        # Preserve the existing explicit DWR fallback contract. Other named sources are exact requests.
+        priority = [requested] + ([s for s in priority if s != requested] if requested == "dwr_qpe" else [])
+    by_id = {item["source_id"]: item for item in (source_status() if statuses is None else statuses)}
+    reasons = []
+    for key in priority:
+        item = by_id.get(key)
+        if not item or not item["usable"] or (live and not item["current_usable"]):
+            reasons.append(f"{key}: {item['status'] if item else 'unknown'}")
+            continue
+        if not live and not requested:
+            # Regional daily statements must never silently replace a catchment forcing source.
+            if not item["historical_available"] or key == "arg_aws":
                 continue
-            coverage_start = item.get("historical_coverage_start_utc")
-            coverage_end = item.get("historical_coverage_end_utc")
-            if mode == "historical" and start_utc and end_utc and coverage_start and coverage_end and (start_utc < coverage_start or end_utc > coverage_end):
-                fallback_reasons.append(f"{source_id}: requested period is outside {coverage_start} to {coverage_end}")
+            first, last = item["historical_coverage_start_utc"], item["historical_coverage_end_utc"]
+            if ((first and end_utc and datetime.fromisoformat(end_utc) < datetime.fromisoformat(first))
+                    or (last and start_utc and datetime.fromisoformat(start_utc) > datetime.fromisoformat(last))):
                 continue
-            substituted = requested is not None and source_id != requested
-            return {"mode": mode, "source_requested": source_requested, "source_used": source_id, "fallback": substituted, "fallback_reason": "; ".join(fallback_reasons) if substituted else None, "priority": priority, "status": item}
-        if item:
-            fallback_reasons.append(f"{source_id}: {item['reason']}")
-    return {"mode": mode, "source_requested": source_requested, "source_used": None, "fallback": False, "fallback_reason": "; ".join(fallback_reasons) or "no quantitative rainfall source is configured", "priority": priority, "status": None}
+        substituted = bool(requested and key != requested)
+        return {"mode": mode, "source_requested": requested or "auto", "source_used": key,
+                "fallback": substituted, "fallback_reason": "; ".join(reasons) if substituted else None,
+                "priority": priority, "status": item}
+    return {"mode": mode, "source_requested": requested or "auto", "source_used": None, "fallback": False,
+            "fallback_reason": "; ".join(reasons) or "no eligible local rainfall source", "priority": priority, "status": None}

@@ -15,6 +15,7 @@ import math
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 
 import numpy as np
 import rasterio
@@ -25,7 +26,7 @@ from rasterio.warp import calculate_default_transform, reproject, transform
 from surface_routing_core import RainfallStep, RoutingParameters, SimulationResult, simulate
 
 
-from run_manifest import record_period, simulation_run, validation_results
+from run_manifest import file_record, record_period, simulation_run, validation_results
 from water_budget import surface_budgets
 
 
@@ -206,6 +207,8 @@ def write_depth_raster(path: Path, depth: np.ndarray, template_path: Path, extra
     with rasterio.open(template_path) as template:
         profile = template.profile.copy()
         outside_terrain = template.read_masks(1) == 0
+    if not profile.get("tiled"):
+        profile.pop("blockxsize", None)  # GDAL determines strip width from the raster width.
     profile.update(driver="GTiff", count=1, dtype="float32", nodata=-9999.0, compress="deflate", predictor=3, BIGTIFF="IF_SAFER")
     with rasterio.open(path, "w", **profile) as dataset:
         output = depth.astype(np.float32, copy=True)
@@ -235,6 +238,13 @@ def write_pgm(path: Path, values: np.ndarray, nodata: float | None = None) -> No
 
 
 def run(args: argparse.Namespace) -> dict:
+    if getattr(args, "temporal_manifest", None) is not None or getattr(args, "event", None) is not None:
+        if (not getattr(args, "temporal_manifest", None) or not getattr(args, "event", None)
+                or getattr(args, "rainfall", None) is not None or getattr(args, "rainfall_timestep_seconds", None) is not None):
+            raise ValueError("historical mode requires --temporal-manifest and --event together, without legacy forcing")
+        return run_historical(args)
+    if getattr(args, "rainfall", None) is None:
+        args.rainfall = ROOT / "data/surface_routing/tests/synthetic_rainfall.json"
     inputs = [*P2_INPUTS.values(), Path(args.rainfall)]
     with simulation_run(ROOT, "P3", inputs, [WORKING_DIR, RESULTS_DIR],
                         [STUDY_AREA_PATH, ROUTING_CONFIG_PATH]) as manifest:
@@ -250,19 +260,64 @@ def run(args: argparse.Namespace) -> dict:
         return summary
 
 
-def _run(args: argparse.Namespace, run_id: str) -> dict:
-    prepared = prepare_projected_inputs()
-    grid = prepared["grid"]
-    with rasterio.open(WORKING_DIR / "dem_working.tif") as dem_dataset:
+def run_historical(args: argparse.Namespace) -> dict:
+    from historical_p3_rainfall import load_event
+
+    run_id = str(uuid4())
+    results = ROOT / "data/runs" / run_id / "results"
+    bundle = Path(args.temporal_manifest).resolve()
+    with simulation_run(ROOT, "P3", [], [results], [STUDY_AREA_PATH, ROUTING_CONFIG_PATH], run_id=run_id) as record:
+        record["forcing_mode"] = "historical_observation_derived"
+        record["event_id"] = args.event
+        record["configuration"]["surface_routing_version_sha256"] = next(
+            item["sha256"] for item in record["inputs"] if item["path"] == ROUTING_CONFIG_PATH.relative_to(ROOT).as_posix())
+        record["requested_temporal_manifest"] = bundle.as_posix() if not bundle.is_relative_to(ROOT) else bundle.relative_to(ROOT).as_posix()
+        try:
+            forcing = load_event(ROOT, bundle, args.event, ROUTING_CONFIG_PATH)
+            recorded = {item["path"] for item in record["inputs"]}
+            for path in forcing.inputs:
+                if path.relative_to(ROOT).as_posix() not in recorded:
+                    record["inputs"].append(file_record(ROOT, path))
+            record["configuration"]["rainfall"] = forcing.metadata
+            record["configuration"]["duration_seconds"] = forcing.metadata["relative_end_seconds"]
+            summary = _run(args, run_id, forcing, results)
+            checks = load_json(results / "p3_validation.json")
+            validation_results(record, checks["checks"])
+            validation_results(record, checks["accounting_checks"])
+            record["rainfall_verification"] = summary["rainfall_verification"]
+            record["water_budget"] = {k:v for k,v in summary.items() if k.endswith("_m3")}
+            record["water_budget"]["residual_percent_of_gross_rainfall"] = summary["residual_percent_of_gross_rainfall"]
+        except (ValueError, RuntimeError, OSError, KeyError) as exc:
+            record["failure_reason"] = str(exc)
+            raise
+    if record["status"] != "succeeded":
+        raise RuntimeError(f"historical run {run_id} failed validation")
+    print(json.dumps({"run_id": run_id, "event": args.event, "steps": summary["steps"],
+                      "manifest": (results.parent / "manifest.json").relative_to(ROOT).as_posix()}))
+    return summary
+
+
+def _run(args: argparse.Namespace, run_id: str, forcing=None, results_dir=None) -> dict:
+    grid = forcing.grid if forcing else prepare_projected_inputs()["grid"]
+    results_dir = results_dir or RESULTS_DIR
+    depth_dir, preview_dir = results_dir / "depth", results_dir / "preview"
+    dem_path = forcing.dem_path if forcing else WORKING_DIR / "dem_working.tif"
+    direction_path = forcing.direction_path if forcing else WORKING_DIR / "flow_direction_working.tif"
+    with rasterio.open(dem_path) as dem_dataset:
         dem = dem_dataset.read(1).astype(np.float64)
         dem_nodata = dem_dataset.nodata
-        template_profile = dem_dataset.profile.copy()
-    valid = np.isfinite(dem) & (dem != dem_nodata)
-    with rasterio.open(WORKING_DIR / "flow_direction_working.tif") as direction_dataset:
+        valid = np.isfinite(dem) & (dem != dem_nodata)
+        if forcing:
+            valid &= dem_dataset.read_masks(1) != 0
+    with rasterio.open(direction_path) as direction_dataset:
         direction = direction_dataset.read(1)
         if direction.shape != dem.shape:
             raise ValueError("Projected flow direction is not aligned with projected DEM")
-    source, forcing_timestep, rainfall_steps, rainfall_metadata = load_rainfall(Path(args.rainfall), dem.shape, grid, args.rainfall_timestep_seconds)
+    if forcing:
+        rainfall_metadata = forcing.metadata
+        source, forcing_timestep, rainfall_steps = rainfall_metadata["source"], rainfall_metadata["step_seconds"], forcing.steps
+    else:
+        source, forcing_timestep, rainfall_steps, rainfall_metadata = load_rainfall(Path(args.rainfall), dem.shape, grid, args.rainfall_timestep_seconds)
     config = load_json(ROUTING_CONFIG_PATH)
     params = RoutingParameters(**{key: config[key] for key in RoutingParameters.__dataclass_fields__})
     if abs(params.timestep_seconds - forcing_timestep) > 1e-9:
@@ -280,17 +335,17 @@ def _run(args: argparse.Namespace, run_id: str) -> dict:
         "routing_balance_within_tolerance": result.maximum_routing_balance_residual_m3 <= tolerance,
     }
 
-    DEPTH_DIR.mkdir(parents=True, exist_ok=True)
-    PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
+    depth_dir.mkdir(parents=True, exist_ok=True)
+    preview_dir.mkdir(parents=True, exist_ok=True)
     for state in result.states:
-        write_depth_raster(DEPTH_DIR / f"depth_{state['index']:04d}.tif", state["water_depth_m"], WORKING_DIR / "dem_working.tif", {"TIMESTEP_INDEX": str(state["index"]), "TIMESTAMP": state["timestamp"]})
-    write_depth_raster(RESULTS_DIR / "max_depth.tif", result.maximum_depth_m, WORKING_DIR / "dem_working.tif", {"MAXIMUM_DEPTH_TIMESTAMP": result.maximum_depth_timestamp or "", "MAXIMUM_DEPTH_INDEX": str(result.maximum_depth_index if result.maximum_depth_index is not None else "")})
-    write_pgm(PREVIEW_DIR / "dem_working.pgm", dem, dem_nodata)
+        write_depth_raster(depth_dir / f"depth_{state['index']:04d}.tif", state["water_depth_m"], dem_path, {"TIMESTEP_INDEX": str(state["index"]), "TIMESTAMP": state["timestamp"]})
+    write_depth_raster(results_dir / "max_depth.tif", result.maximum_depth_m, dem_path, {"MAXIMUM_DEPTH_TIMESTAMP": result.maximum_depth_timestamp or "", "MAXIMUM_DEPTH_INDEX": str(result.maximum_depth_index if result.maximum_depth_index is not None else "")})
+    write_pgm(preview_dir / "dem_working.pgm", dem, dem_nodata)
     if result.states:
-        write_pgm(PREVIEW_DIR / "depth_t0000.pgm", result.states[0]["water_depth_m"])
-        write_pgm(PREVIEW_DIR / f"depth_t{len(result.states)//2:04d}.pgm", result.states[len(result.states)//2]["water_depth_m"])
-        write_pgm(PREVIEW_DIR / f"depth_t{len(result.states)-1:04d}.pgm", result.states[-1]["water_depth_m"])
-    write_pgm(PREVIEW_DIR / "max_depth.pgm", result.maximum_depth_m)
+        write_pgm(preview_dir / "depth_t0000.pgm", result.states[0]["water_depth_m"])
+        write_pgm(preview_dir / f"depth_t{len(result.states)//2:04d}.pgm", result.states[len(result.states)//2]["water_depth_m"])
+        write_pgm(preview_dir / f"depth_t{len(result.states)-1:04d}.pgm", result.states[-1]["water_depth_m"])
+    write_pgm(preview_dir / "max_depth.pgm", result.maximum_depth_m)
 
     summary = {
         "run_id": run_id,
@@ -327,11 +382,29 @@ def _run(args: argparse.Namespace, run_id: str) -> dict:
         "maximum_depth_m": result.maximum_depth_value_m,
         "maximum_depth_index": result.maximum_depth_index,
         "maximum_depth_timestamp": result.maximum_depth_timestamp,
-        "time_series": [{key: state[key] for key in ("index", "timestamp", "rainfall_input_m3", "runoff_input_m3", "coefficient_loss_m3", "infiltration_loss_m3", "surface_water_input_m3", "modeled_losses_m3", "boundary_outflow_m3", "stored_surface_water_m3", "mass_balance_residual_m3", "surface_balance_residual_m3", "routing_balance_residual_m3")} | {"depth_file": str((DEPTH_DIR / f"depth_{state['index']:04d}.tif").relative_to(ROOT)).replace("\\", "/")} for state in result.states],
-        "outputs": {"depth_directory": str(DEPTH_DIR.relative_to(ROOT)).replace("\\", "/"), "max_depth": str((RESULTS_DIR / "max_depth.tif").relative_to(ROOT)).replace("\\", "/"), "preview_directory": str(PREVIEW_DIR.relative_to(ROOT)).replace("\\", "/")},
+        "time_series": [{key: state[key] for key in ("index", "timestamp", "rainfall_input_m3", "runoff_input_m3", "coefficient_loss_m3", "infiltration_loss_m3", "surface_water_input_m3", "modeled_losses_m3", "boundary_outflow_m3", "stored_surface_water_m3", "mass_balance_residual_m3", "surface_balance_residual_m3", "routing_balance_residual_m3")} | {"depth_file": str((depth_dir / f"depth_{state['index']:04d}.tif").relative_to(ROOT)).replace("\\", "/")} for state in result.states],
+        "outputs": {"depth_directory": str(depth_dir.relative_to(ROOT)).replace("\\", "/"), "max_depth": str((results_dir / "max_depth.tif").relative_to(ROOT)).replace("\\", "/"), "preview_directory": str(preview_dir.relative_to(ROOT)).replace("\\", "/")},
         "scientific_status": "prototype dynamic surface routing; not calibrated, not a full 2D hydrodynamic urban flood model, and not an observation-backed nowcast",
     }
-    (RESULTS_DIR / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    if forcing:
+        independent = rainfall_metadata["raster_volume_m3"]
+        per_step = rainfall_metadata["per_step_volume_m3"]
+        tol = rainfall_metadata["volume_tolerance_m3"]
+        ordered = [s["timestamp"] for s in result.states] == [s.timestamp for s in forcing.steps]
+        differences = [state["rainfall_input_m3"]-volume for state, volume in zip(result.states, per_step)]
+        max_error = max(map(abs, differences), default=0.0)
+        difference = result.total_rainfall_input_m3 - independent
+        accounting_checks.update(all_historical_steps_consumed=ordered,
+                                 rainfall_volume_agrees_with_rasters=abs(difference) <= tol,
+                                 each_rainfall_volume_agrees=ordered and max_error <= tol)
+        summary["rainfall_verification"] = {"temporal_volume_m3": rainfall_metadata["allocated_volume_m3"],
+            "raster_volume_m3": independent, "engine_volume_m3": result.total_rainfall_input_m3,
+            "engine_minus_raster_m3": difference, "max_step_difference_m3": max_error, "tolerance_m3": tol}
+        summary["residual_percent_of_gross_rainfall"] = (100*result.mass_balance_residual_m3/result.total_rainfall_input_m3
+                                                         if result.total_rainfall_input_m3 else None)
+        for state, band in zip(summary["time_series"], rainfall_metadata["bands"]):
+            state.update({k:band[k] for k in ("band", "source_label", "timestamp_utc", "relative_start_seconds", "relative_end_seconds")})
+    (results_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     validation = {
         "simulation_parameters": config,
         "rainfall_source": source,
@@ -362,16 +435,22 @@ def _run(args: argparse.Namespace, run_id: str) -> dict:
             "grid_alignment": "all projected input/output rasters use the working DEM grid",
         },
     }
-    (RESULTS_DIR / "p3_validation.json").write_text(json.dumps(validation, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"summary": summary, "validation": validation}, indent=2))
+    (results_dir / "p3_validation.json").write_text(json.dumps(validation, indent=2) + "\n", encoding="utf-8")
+    if not forcing:
+        print(json.dumps({"summary": summary, "validation": validation}, indent=2))
     return summary
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--rainfall", default=str(ROOT / "data" / "surface_routing" / "tests" / "synthetic_rainfall.json"))
+    inputs = parser.add_mutually_exclusive_group()
+    inputs.add_argument("--rainfall", help="JSON or CSV forcing (default: the synthetic engineering fixture)")
+    inputs.add_argument("--temporal-manifest", type=Path, help="published Task 2.4 temporal bundle manifest")
+    parser.add_argument("--event", help="historical event ID in the selected temporal bundle")
     parser.add_argument("--rainfall-timestep-seconds", type=float)
     args = parser.parse_args()
+    if bool(args.temporal_manifest) != bool(args.event) or (args.temporal_manifest and args.rainfall_timestep_seconds is not None):
+        parser.error("use --temporal-manifest and --event together, with the timestep supplied by the event")
     run(args)
 
 

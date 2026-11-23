@@ -140,13 +140,17 @@ def test_rainfall_status_reports_explicit_dwr_substitution(client: TestClient) -
     assert body["fallback"] is True
 
 
-def test_current_rainfall_is_labeled_model_forecast(client: TestClient) -> None:
+def test_expired_or_absent_forecast_is_unavailable_for_current(client: TestClient, monkeypatch) -> None:
+    from datetime import datetime, timezone
+    from app.rainfall import resolver
+    monkeypatch.setattr(resolver, "utc_now", lambda: datetime(2099, 1, 1, tzinfo=timezone.utc))
     response = client.get("/api/rainfall/current")
     assert response.status_code == 200
     body = response.json()
-    assert body["source_used"] == "open_meteo_precipitation_forecast"
-    assert body["source_role"] == "model_forecast"
-    assert "Open-Meteo" in body["source_name"]
+    assert body["source_used"] is None
+    forecast = next(s for s in body["sources"] if s["source_id"] == "open_meteo_precipitation_forecast")
+    assert forecast["role"] == "model_forecast"
+    assert forecast["current_usable"] is False
     assert body["fallback"] is False
 
 

@@ -12,8 +12,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import math
-import re
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -22,23 +21,14 @@ import rasterio
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "backend"))
+from app.rainfall.providers.mosdac import MosdacProvider, PRODUCT, SOURCE_ID, parse_timestamp
+from app.rainfall.registry import relative_path
+
 STUDY_AREA = ROOT / "config" / "study_area.json"
 REGISTRY = ROOT / "config" / "rainfall_sources.json"
-SOURCE_ID = "mosdac_insat3dr"
-PRODUCT = "3RIMG_L2B_IMC"
-TIMESTAMP_RE = re.compile(r"^3RIMG_(\d{2})([A-Z]{3})(\d{4})_(\d{2})(\d{2})_L2B_IMC_.*\.tif$")
-
-
 def rel(path: Path) -> str:
-    return path.relative_to(ROOT).as_posix()
-
-
-def parse_timestamp(path: Path) -> str:
-    match = TIMESTAMP_RE.match(path.name)
-    if not match:
-        raise ValueError(f"cannot parse MOSDAC timestamp from {path.name}")
-    value = datetime.strptime("".join(match.groups()), "%d%b%Y%H%M").replace(tzinfo=timezone.utc)
-    return value.isoformat().replace("+00:00", "Z")
+    return relative_path(path)
 
 
 def load_config() -> tuple[dict, dict, Path, Path]:
@@ -48,16 +38,6 @@ def load_config() -> tuple[dict, dict, Path, Path]:
     raw_root = ROOT / source["raw_directory"]
     output_root = ROOT / source["processed_directory"]
     return area, source, raw_root, output_root
-
-
-def pixel_intersects(transform, row: int, col: int, bbox: dict[str, float]) -> bool:
-    left = transform.c + col * transform.a
-    right = left + transform.a
-    top = transform.f + row * transform.e
-    bottom = top + transform.e
-    west, east = sorted((left, right))
-    south, north = sorted((bottom, top))
-    return not (east < bbox["min_lon"] or west > bbox["max_lon"] or north < bbox["min_lat"] or south > bbox["max_lat"])
 
 
 def run(output_csv: Path | None = None, metadata_json: Path | None = None) -> dict:
@@ -99,60 +79,29 @@ def run(output_csv: Path | None = None, metadata_json: Path | None = None) -> di
                 raw_extent = {"left": float(bounds.left), "bottom": float(bounds.bottom), "right": float(bounds.right), "top": float(bounds.top)}
             if bounds.left > bbox["min_lon"] or bounds.right < bbox["max_lon"] or bounds.bottom > bbox["min_lat"] or bounds.top < bbox["max_lat"]:
                 raise ValueError(f"MOSDAC raster does not cover the canonical bbox: {path.name}")
-            data = dataset.read(1, masked=True).astype(np.float64)
-            selected = 0
-            valid = 0
-            nonzero = 0
-            for row_index in range(dataset.height):
-                for col_index in range(dataset.width):
-                    if not pixel_intersects(dataset.transform, row_index, col_index, bbox):
-                        continue
-                    selected += 1
-                    left = dataset.transform.c + col_index * dataset.transform.a
-                    right = left + dataset.transform.a
-                    top = dataset.transform.f + row_index * dataset.transform.e
-                    bottom = top + dataset.transform.e
-                    aoi_pixel_bounds.append((min(left, right), min(bottom, top), max(left, right), max(bottom, top)))
-                    pixel_west, pixel_east = sorted((left, right))
-                    pixel_south, pixel_north = sorted((bottom, top))
-                    intersection_west = max(pixel_west, bbox["min_lon"])
-                    intersection_east = min(pixel_east, bbox["max_lon"])
-                    intersection_south = max(pixel_south, bbox["min_lat"])
-                    intersection_north = min(pixel_north, bbox["max_lat"])
-                    value = data[row_index, col_index]
-                    if np.ma.is_masked(value) or not math.isfinite(float(value)) or float(value) < 0:
-                        continue
-                    rate = float(value)
-                    accumulation = rate * 0.5
-                    source_center_x, source_center_y = rasterio.transform.xy(dataset.transform, row_index, col_index, offset="center")
-                    center_x = (intersection_west + intersection_east) / 2.0
-                    center_y = (intersection_south + intersection_north) / 2.0
-                    row = {
-                        "timestamp_utc": timestamp,
-                        "timestamp": timestamp,
-                        "lat": float(center_y),
-                        "lon": float(center_x),
-                        "latitude": float(center_y),
-                        "longitude": float(center_x),
-                        "source_pixel_latitude": float(source_center_y),
-                        "source_pixel_longitude": float(source_center_x),
-                        "rainfall_mm": accumulation,
-                        "rainfall_rate_mm_per_hr": rate,
-                        "source": SOURCE_ID,
-                        "source_product": PRODUCT,
-                        "resolution_m": int(source["native_resolution_m"]),
-                        "units": "mm per 30-minute accumulation",
-                        "quality_flag": "valid_source_pixel",
-                        "is_observed": True,
-                        "is_forecast": False,
-                        "is_fallback": False,
-                        "mode": "historical_observed_satellite_estimate",
-                    }
-                    rows.append(row)
-                    valid += 1
-                    nonzero += int(rate != 0)
-                    raw_values.append(accumulation)
-                    rate_values.append(rate)
+            pixels = MosdacProvider.frame(dataset, path, bbox, int(source["native_resolution_m"]))
+            selected = len(pixels)
+            valid = nonzero = 0
+            for pixel in pixels:
+                aoi_pixel_bounds.append(pixel.geometry["footprint"])
+                if pixel.missing:
+                    continue
+                source_lon, source_lat = pixel.geometry["center"]
+                rows.append({
+                    "timestamp_utc": timestamp, "timestamp": timestamp,
+                    "lat": pixel.latitude, "lon": pixel.longitude,
+                    "latitude": pixel.latitude, "longitude": pixel.longitude,
+                    "source_pixel_latitude": source_lat, "source_pixel_longitude": source_lon,
+                    "rainfall_mm": pixel.rainfall_mm, "rainfall_rate_mm_per_hr": pixel.original_value,
+                    "source": SOURCE_ID, "source_product": PRODUCT,
+                    "resolution_m": int(pixel.spatial_resolution), "units": pixel.units,
+                    "quality_flag": pixel.quality_flags[0], "is_observed": True,
+                    "is_forecast": False, "is_fallback": False, "mode": pixel.mode,
+                })
+                valid += 1
+                nonzero += int(pixel.original_value > 0)
+                raw_values.append(pixel.rainfall_mm)
+                rate_values.append(pixel.original_value)
             if crop_signature is None:
                 crop_signature = (selected, tuple(round(value, 12) for value in dataset.bounds))
             if valid == 0:

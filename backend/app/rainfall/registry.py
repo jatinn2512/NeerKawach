@@ -23,3 +23,11 @@ def source_config(source_id: str) -> dict[str, Any]:
     if not isinstance(source, dict):
         raise KeyError(source_id)
     return {"source_id": source_id, **source}
+
+
+def relative_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT)).replace("\\", "/")
+    except ValueError:
+        # Test callers may use a temporary output root outside the repository.
+        return path.as_posix()

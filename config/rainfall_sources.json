@@ -56,6 +56,8 @@
       "enabled": true,
       "capabilities": ["historical", "current"],
       "raw_directory": "data/rainfall/raw/arg",
+      "statement_directory": "data/rainfall/imd",
+      "statement_pattern": "*_RAINFALL_DAILY_*.csv",
       "processed_directory": "data/rainfall/processed/arg",
       "notes": "Point observations are retained as stations; they are never expanded into a synthetic grid."
     },
@@ -78,6 +80,7 @@
       "enabled": true,
       "capabilities": ["historical"],
       "raw_directory": "data/rainfall/raw/imd",
+      "raw_file_pattern": "????????.grd",
       "processed_directory": "data/rainfall/processed",
       "file_patterns": ["imd_gpm_*.csv"],
       "processed_file_pattern": "imd_gpm_*.csv",
@@ -106,6 +109,8 @@
       "capabilities": ["current", "forecast"],
       "historical_available": false,
       "raw_directory": "data/rainfall/raw/open_meteo",
+      "raw_file_pattern": "open_meteo_*.json",
+      "processed_file_pattern": "open_meteo_*.csv",
       "processed_directory": "data/rainfall/processed",
       "file_patterns": ["open_meteo_*.csv"],
       "notes": "Model precipitation, not radar or DWR. Existing adapter is the public no-login fallback."

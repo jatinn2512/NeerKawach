@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import json
 import unittest
+from tempfile import TemporaryDirectory
 from pathlib import Path
 
 import rasterio
@@ -31,7 +32,9 @@ class MosdacRainfallTests(unittest.TestCase):
             self.assertGreaterEqual(float(dataset.read(1).max()), 0.0)
 
     def test_ingestion_metadata_and_p3_input_contract(self):
-        metadata = run()
+        with TemporaryDirectory() as directory:
+            temporary = Path(directory)
+            metadata = run(temporary / "subset.csv", temporary / "metadata.json")
         self.assertEqual(metadata["raw_file_count"], 341)
         self.assertEqual(metadata["source_product"], "3RIMG_L2B_IMC")
         self.assertEqual(metadata["temporal_coverage"]["unique_timestamps"], 341)

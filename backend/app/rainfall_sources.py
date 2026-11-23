@@ -8,14 +8,21 @@ imagery is deliberately not converted into quantitative rainfall values.
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 import time
-from datetime import datetime, timezone
+from dataclasses import replace
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
 
 import httpx
+
+from app.rainfall.registry import relative_path
+
+from app.rainfall.contracts import (RainfallSeries, RainfallValidationError, normalize_record,
+                                   read_normalized_csv, utc_label, validate_records)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -69,14 +76,6 @@ def parse_source_timestamp(value: object, *, assume_timezone: timezone | None = 
             raise RainfallSourceError(f"Source timestamp has no timezone: {value!r}")
         parsed = parsed.replace(tzinfo=assume_timezone)
     return timestamp_text(parsed)
-
-
-def relative_path(path: Path) -> str:
-    try:
-        return str(path.relative_to(ROOT)).replace("\\", "/")
-    except ValueError:
-        # Test callers may use a temporary output root outside the repository.
-        return path.as_posix()
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -202,8 +201,110 @@ class OpenMeteoClient(_JSONClient):
         metadata["metadata_file"] = relative_path(metadata_path)
         return metadata
 
+    @classmethod
+    def read_archive(cls, raw_files: list[Path], csv_files: list[Path], metadata_dir: Path,
+                     *, as_of: datetime, current: bool = False) -> RainfallSeries:
+        """Combine repeated captures; for revised hours retain the latest available forecast."""
+        raw_by_id = {p.stem: p for p in raw_files}
+        csv_by_id = {p.stem: p for p in csv_files}
+        captures = []
+        seen_series = {}
+        forecasts = {}
+        missing_hours = set()
+        for capture_id in sorted(raw_by_id.keys() | csv_by_id.keys()):
+            raw, processed = raw_by_id.get(capture_id), csv_by_id.get(capture_id)
+            sidecar = metadata_dir / f"{capture_id}.json"
+            meta = json.loads(sidecar.read_text(encoding="utf-8")) if sidecar.exists() else {}
+            if not isinstance(meta, dict) or not isinstance(meta.get("model_metadata", {}), dict):
+                raise RainfallValidationError(f"invalid Open-Meteo metadata: {capture_id}")
+            filename_time = datetime.strptime(capture_id, "open_meteo_%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+            retrieved = utc_label(meta.get("retrieved_at_utc", timestamp_text(filename_time)))
+            issue = meta.get("model_issue_utc") or meta.get("model_metadata", {}).get("model_issue_utc")
+            issue = utc_label(issue) if issue else None
+            if raw:
+                payload = json.loads(raw.read_text(encoding="utf-8"))
+                if not isinstance(payload, dict):
+                    raise RainfallValidationError(f"invalid Open-Meteo response: {capture_id}")
+                if issue is None and payload.get("model_issue_utc"):
+                    issue = utc_label(payload["model_issue_utc"])
+                rows, _ = cls._normalize(payload, (payload.get("latitude"), payload.get("longitude")),
+                                         retain_missing=True)
+                records = validate_records(normalize_record(row) for row in rows)
+                labels = dict(zip((r.timestamp_utc for r in records), payload["hourly"]["time"]))
+            if processed:
+                legacy = read_normalized_csv(processed, source=OPEN_METEO_SOURCE)
+                if not raw:
+                    records = legacy
+                    labels = {r.timestamp_utc: r.timestamp_utc for r in records}
+                elif cls._series_values(legacy) != cls._series_values(records):
+                    raise RainfallValidationError(f"Open-Meteo raw and CSV captures disagree: {capture_id}")
+            if not records:
+                raise RainfallValidationError(f"empty Open-Meteo capture: {capture_id}")
+            values = cls._series_values(records)
+            model = meta.get("model_metadata", {}).get("model")
+            if raw:
+                model = payload.get("model", model)
+            identity = json.dumps([issue, model, values], separators=(",", ":"), sort_keys=True)
+            digest = hashlib.sha256(identity.encode()).hexdigest()
+            observed_labels = {r.timestamp_utc for r in records}
+            first, latest = min(observed_labels), max(observed_labels)
+            cursor, last = datetime.fromisoformat(first), datetime.fromisoformat(latest)
+            gaps = []
+            while cursor < last:
+                label = timestamp_text(cursor)
+                if label not in observed_labels:
+                    gaps.append(label)
+                cursor += timedelta(hours=1)
+            expired = datetime.fromisoformat(latest) < as_of
+            available = datetime.fromisoformat(retrieved) <= as_of
+            current_usable = available and any(not r.missing and datetime.fromisoformat(r.timestamp_utc) >= as_of
+                                               for r in records)
+            capture = {"capture_id": capture_id, "series_id": digest,
+                       "duplicate_of": seen_series.get(digest), "retrieved_at_utc": retrieved,
+                       "retrieval_time_basis": "sidecar" if meta.get("retrieved_at_utc") else "capture_filename",
+                       "model_issue_utc": issue, "first_valid_utc": first, "missing_labels": gaps,
+                       "last_valid_utc": latest, "expired": expired, "available_as_of": available,
+                       "current_usable": current_usable,
+                       "raw_file": relative_path(raw) if raw else None,
+                       "processed_file": relative_path(processed) if processed else None}
+            if not current or current_usable:
+                captures.append(capture)
+                missing_hours.update(gaps)
+            seen_series.setdefault(digest, capture_id)
+            for record in records:
+                valid_time = datetime.fromisoformat(record.timestamp_utc)
+                if current and (not available or valid_time < as_of):
+                    continue
+                key = (record.timestamp_utc, record.latitude, record.longitude)
+                if key in forecasts and datetime.fromisoformat(forecasts[key].retrieved_at_utc) > datetime.fromisoformat(retrieved):
+                    continue
+                forecasts[key] = replace(record, product=OPEN_METEO_SOURCE, source_file=relative_path(raw or processed),
+                    source_record_id=f"{capture_id}/{record.timestamp_utc}/{record.latitude}/{record.longitude}",
+                    variable="precipitation", measurement_type="forecast_accumulation",
+                    original_value=record.rainfall_mm, original_unit="mm", forecast=True,
+                    source_label=labels[record.timestamp_utc], timestamp_convention="forecast valid-time label in UTC",
+                    forecast_valid_utc=record.timestamp_utc, retrieved_at_utc=retrieved, model_issue_utc=issue,
+                    mode="forecast" if current else "archived_forecast", cadence_seconds=3600, interval_seconds=3600,
+                    freshness="expired" if valid_time < as_of else "not_yet_retrieved" if not available else "valid",
+                    geometry={"kind": "model_grid_point", "crs": "EPSG:4326",
+                              "center": (record.longitude, record.latitude), "footprint": None},
+                    provenance={"provider": "Open-Meteo", "capture_id": capture_id, "series_id": digest,
+                                "retrieval_time_basis": capture["retrieval_time_basis"], "model": model})
+        output = [forecasts[k] for k in sorted(forecasts)]
+        missing_hours.difference_update(r.timestamp_utc for r in output)
+        if current:
+            missing_hours = {label for label in missing_hours if datetime.fromisoformat(label) >= as_of}
+        return RainfallSeries(output, sorted(missing_hours), captures)
+
     @staticmethod
-    def _normalize(payload: dict[str, Any], requested_coordinate: tuple[float, float]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    def _series_values(records):
+        return sorted((r.timestamp_utc, r.latitude, r.longitude, r.rainfall_mm) for r in records)
+
+    @staticmethod
+    def _normalize(payload: dict[str, Any], requested_coordinate: tuple[float, float], *,
+                   retain_missing: bool = False) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        if payload.get("utc_offset_seconds", 0) != 0:
+            raise RainfallSourceError("Open-Meteo UTC request received a non-UTC response")
         hourly = payload.get("hourly")
         units = payload.get("hourly_units")
         if not isinstance(hourly, dict) or not isinstance(units, dict):
@@ -220,9 +321,15 @@ class OpenMeteoClient(_JSONClient):
             raise RainfallSourceError("Open-Meteo response has invalid grid-cell coordinates")
         rows = []
         for source_time, value in zip(times, precipitation):
-            if not isinstance(value, (int, float)) or not math.isfinite(float(value)) or float(value) < 0:
+            missing = isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) or value < 0
+            if missing and not retain_missing:
                 raise RainfallSourceError(f"Open-Meteo response has invalid precipitation value: {value!r}")
-            rows.append({"timestamp": parse_source_timestamp(source_time, assume_timezone=timezone.utc), "latitude": float(response_lat), "longitude": float(response_lon), "rainfall_mm": float(value), "source": OPEN_METEO_SOURCE})
+            row = {"timestamp": parse_source_timestamp(source_time, assume_timezone=timezone.utc),
+                   "latitude": float(response_lat), "longitude": float(response_lon),
+                   "rainfall_mm": None if missing else float(value), "source": OPEN_METEO_SOURCE}
+            if missing:
+                row.update(missing=True, quality_flag="missing_source_value" if value is None else "invalid_source_value")
+            rows.append(row)
         return rows, {
             "response_grid_coordinate": {"latitude": float(response_lat), "longitude": float(response_lon)},
             "model_metadata": {"model_selection": "auto", **{key: payload.get(key) for key in ("model", "models", "generationtime_ms", "elevation", "timezone", "timezone_abbreviation") if key in payload}},
