@@ -55,7 +55,6 @@ class HistoricalForcing:
     inputs: list[Path]
     grid: dict
     dem_path: Path
-    direction_path: Path
 
 
 def aligned(dataset, grid):
@@ -193,9 +192,6 @@ def load_event(root, manifest_path, event_id, config_path):
             and target["pixel_size_m"] == [cfg["target_resolution_m"]]*2
             and grid.cell_area == target["cell_area_m2"]
             and grid.cell_area*int(grid.valid.sum()) == target["valid_domain_area_m2"], "invalid target geometry")
-    direction = below(root, declared["outputs"]["flow_direction"]["file"])
-    with rasterio.open(direction) as ds:
-        aligned(ds, grid)
     mask_file = input_path(event["dem_valid_raster"])
     require(mask_file == below(spatial_path.parent, target["valid_mask"]), "unexpected DEM mask reference")
     with rasterio.open(mask_file) as ds:
@@ -243,4 +239,4 @@ def load_event(root, manifest_path, event_id, config_path):
                     intervals=event["intervals"], bands=rows, raster_volume_m3=total, per_step_volume_m3=volumes,
                     valid_cells=int(grid.valid.sum()), excluded_cells=int((~grid.valid).sum()),
                     input_unit="mm", engine_unit="m", excluded_engine_sentinel=EXCLUDED, volume_tolerance_m3=VOLUME_ATOL_M3)
-    return HistoricalForcing(steps, metadata, [*files.hashes, direction], declared["working_grid"], dem, direction)
+    return HistoricalForcing(steps, metadata, list(files.hashes), declared["working_grid"], dem)

@@ -77,7 +77,6 @@ def archive(tmp_path_factory):
     root = tmp_path_factory.mktemp("historical")
     shutil.copytree((ROOT/BUNDLE).parent, (root/BUNDLE).parent)
     names = set(read(ROOT/BUNDLE)["input_sha256"])
-    names.add("data/surface_routing/input/flow_direction_working.tif")
     for name in names:
         destination = root/name
         destination.parent.mkdir(parents=True,exist_ok=True)
@@ -177,6 +176,24 @@ def test_invalid_products_fail_before_simulation(archive,tmp_path,monkeypatch,pr
         assert "raster bands" in failed["failure_reason"]
 
 
+def assert_saved_peaks(root, summary):
+    maxima = None
+    for row in summary["time_series"]:
+        with rasterio.open(root / row["depth_file"]) as ds:
+            frame = ds.read(1)
+        maxima = frame.copy() if maxima is None else np.maximum(maxima, frame)
+    with rasterio.open(root / summary["outputs"]["max_depth"]) as ds:
+        assert ds.tags()["STATISTIC"] == "cellwise_maximum_over_saved_timesteps"
+        assert "MAXIMUM_DEPTH_TIMESTAMP" not in ds.tags()
+        np.testing.assert_array_equal(ds.read(1), maxima)
+        assert (ds.read_masks(1) == 0).sum() == 301
+    peak = summary["time_series"][summary["maximum_depth_index"]]
+    assert summary["domain_peak_depth_file"] == peak["depth_file"]
+    with rasterio.open(root / peak["depth_file"]) as ds:
+        assert ds.tags()["TIMESTAMP"] == peak["timestamp"] == summary["maximum_depth_timestamp"]
+        assert ds.read(1).max() == maxima.max() == np.float32(summary["maximum_depth_m"])
+
+
 def test_complete_primary_p3_replay(archive,monkeypatch):
     runner_root(monkeypatch,archive)
     monkeypatch.setattr(runner,"load_rainfall",lambda *args: pytest.fail("synthetic fallback"))
@@ -212,9 +229,23 @@ def test_complete_primary_p3_replay(archive,monkeypatch):
                 -budget["boundary_outflow_m3"]-budget["final_stored_water_m3"])
     assert abs(residual) <= summary["parameters"]["mass_balance_tolerance_m3"]
     assert all(checksum(archive/item["path"])==item["sha256"] for item in record["outputs"])
+    terrain = record["terrain_hydrology"]
+    direction = terrain["products"]["flow_direction"]
+    assert direction["sha256"] == checksum(archive / direction["file"])
+    assert direction["file"].startswith(f"data/runs/{summary['run_id']}/terrain/")
+    assert terrain["source_dem_sha256"] == checksum(archive / source["target_grid"]["dem"])
+    assert_saved_peaks(archive, summary)
+    rain_free_depths = []
+    for row in rows[216:228]:
+        assert row["rainfall_input_m3"] == 0
+        with rasterio.open(archive / row["depth_file"]) as ds:
+            rain_free_depths.append(ds.read(1)[[75, 75, 76], [63, 64, 64]])
+    wet = np.array(rain_free_depths) >= 0.05
+    assert not np.any(np.all(wet[1:] != wet[:-1], axis=0))
 
 
-def test_default_synthetic_runner_in_isolation(tmp_path,monkeypatch):
+@pytest.mark.parametrize("run_scoped", [False, True])
+def test_default_synthetic_runner_in_isolation(tmp_path,monkeypatch,run_scoped):
     runner_root(monkeypatch,tmp_path)
     original_inputs = runner.P2_INPUTS
     monkeypatch.setattr(runner,"P2_INPUTS",{k:tmp_path/p.relative_to(ROOT) for k,p in original_inputs.items()})
@@ -223,9 +254,14 @@ def test_default_synthetic_runner_in_isolation(tmp_path,monkeypatch):
         target = tmp_path/p.relative_to(ROOT)
         target.parent.mkdir(parents=True,exist_ok=True)
         shutil.copyfile(p,target)
-    actual = runner.run(argparse.Namespace(rainfall=None,rainfall_timestep_seconds=None))
-    baseline = read(ROOT/"data/surface_routing/results/summary.json")
+    actual = runner.run(argparse.Namespace(rainfall=None,rainfall_timestep_seconds=None,run_scoped=run_scoped))
     assert actual["steps"]==12 and actual["rainfall"]["source"]=="synthetic_test"
-    for k in ("total_rainfall_input_m3","final_stored_water_m3","mass_balance_residual_m3","maximum_depth_m"):
-        assert actual[k] == pytest.approx(baseline[k],abs=1e-7,rel=0)
     assert actual["total_rainfall_input_m3"] == pytest.approx(320904,abs=1e-7,rel=0)
+    assert actual["final_stored_water_m3"] == pytest.approx(238003.8,abs=1e-7,rel=0)
+    assert abs(actual["mass_balance_residual_m3"]) <= actual["parameters"]["mass_balance_tolerance_m3"]
+    assert_saved_peaks(tmp_path, actual)
+    assert not runner.RESULTS_DIR.exists() and not runner.WORKING_DIR.exists()
+    record = read(tmp_path / "data/runs" / actual["run_id"] / "manifest.json")
+    assert record["status"] == "succeeded"
+    assert record["terrain_hydrology"] == actual["terrain_hydrology"]
+    assert all(Path(item["path"]).parts[:3] == ("data", "runs", actual["run_id"]) for item in record["outputs"])

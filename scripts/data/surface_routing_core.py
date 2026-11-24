@@ -9,6 +9,7 @@ DEM-derived D8 direction is only a preference factor, never a permanent route.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import ceil
 from typing import Iterable
 
 import numpy as np
@@ -92,12 +93,6 @@ def _check_arrays(dem: np.ndarray, valid: np.ndarray, direction: np.ndarray | No
         raise ValueError("Water depth cannot be negative")
 
 
-def _preference(direction: np.ndarray | None, row: int, col: int, dr: int, dc: int, factor: float) -> float:
-    if direction is None:
-        return 1.0
-    return factor if int(direction[row, col]) == D8_CODES.get((dr, dc), -1) else 1.0
-
-
 def _redistribute(
     dem: np.ndarray,
     depth: np.ndarray,
@@ -108,50 +103,57 @@ def _redistribute(
     dx_m: float,
     dy_m: float,
 ) -> np.ndarray:
+    """Integrate head-driven exchange on equal-area cells over one forcing step."""
+    if not (dx_m > 0 and dy_m > 0 and cell_area_m2 > 0):
+        raise ValueError("Cell dimensions and area must be positive")
     rows, cols = dem.shape
-    transfers: list[tuple[int, int, int, int, float]] = []
-    outgoing = np.zeros((rows, cols), dtype=np.float64)
-    exchange_fraction = min(0.5, params.timestep_seconds / params.routing_timescale_seconds)
-    head = dem + depth
+    cells = np.arange(dem.size).reshape(dem.shape)
+    endpoints_a, endpoints_b = [], []
+    weights_ab, weights_ba = [], []
     for dr, dc in PAIR_DIRECTIONS:
-        distance = float(np.hypot(dc * dx_m, dr * dy_m))
-        for row in range(max(0, -dr), min(rows, rows - dr)):
-            for col in range(max(0, -dc), min(cols, cols - dc)):
-                nr, nc = row + dr, col + dc
-                if not valid[row, col] or not valid[nr, nc]:
-                    continue
-                difference = float(head[row, col] - head[nr, nc])
-                if difference > 0:
-                    sr, sc, tr, tc = row, col, nr, nc
-                    pref = _preference(direction, sr, sc, dr, dc, params.d8_preference_factor)
-                elif difference < 0:
-                    sr, sc, tr, tc = nr, nc, row, col
-                    pref = _preference(direction, sr, sc, -dr, -dc, params.d8_preference_factor)
-                    difference = -difference
-                else:
-                    continue
-                # Head difference [m] × cell area [m²] gives a volume. The
-                # exchange fraction is the explicit stability limiter.
-                volume = difference * cell_area_m2 * exchange_fraction * pref
-                source_volume = float(depth[sr, sc] * cell_area_m2)
-                volume = min(volume, source_volume)
-                if volume > 0:
-                    transfers.append((sr, sc, tr, tc, volume))
-                    outgoing[sr, sc] += volume
+        left = cells[:rows-dr, max(0, -dc):min(cols, cols-dc)]
+        right = cells[dr:, max(0, dc):min(cols, cols+dc)]
+        connected = valid.flat[left] & valid.flat[right]
+        a, b = left[connected], right[connected]
+        endpoints_a.append(a)
+        endpoints_b.append(b)
+        weight = cell_area_m2 / ((dc * dx_m)**2 + (dr * dy_m)**2)
+        forward = np.full(a.size, weight)
+        reverse = np.full(b.size, weight)
+        if direction is not None:
+            forward[direction.flat[a] == D8_CODES[dr, dc]] *= params.d8_preference_factor
+            reverse[direction.flat[b] == D8_CODES[-dr, -dc]] *= params.d8_preference_factor
+        weights_ab.append(forward)
+        weights_ba.append(reverse)
 
-    scale = np.ones((rows, cols), dtype=np.float64)
-    available = depth * cell_area_m2
-    over = outgoing > available
-    scale[over] = available[over] / outgoing[over]
-    delta_volume = np.zeros((rows, cols), dtype=np.float64)
-    for sr, sc, tr, tc, volume in transfers:
-        moved = volume * scale[sr, sc]
-        delta_volume[sr, sc] -= moved
-        delta_volume[tr, tc] += moved
-    result = depth + delta_volume / cell_area_m2
-    result[~valid] = 0.0
-    result[result < 0] = 0.0
-    return result
+    a, b = np.concatenate(endpoints_a), np.concatenate(endpoints_b)
+    forward, reverse = np.concatenate(weights_ab), np.concatenate(weights_ba)
+    bed = np.asarray(dem, dtype=np.float64).ravel()
+    bed_drop = bed[a] - bed[b]
+    water = np.where(valid, depth, 0.0).astype(np.float64).ravel()
+
+    # Bound the sum of *all* incident coefficients at either end by 1/2.
+    # Each substep then retains at least half the local head in the convex
+    # combination. The bound holds for either possible donor on every edge.
+    largest_weight = np.maximum(forward, reverse)
+    degree = (np.bincount(a, weights=largest_weight, minlength=water.size)
+              + np.bincount(b, weights=largest_weight, minlength=water.size))
+    interval = params.timestep_seconds / params.routing_timescale_seconds
+    substeps = max(1, ceil(2 * interval * degree.max(initial=0.0)))
+    for _ in range(substeps):
+        head_drop = bed_drop + (water[a] - water[b])
+        downhill = head_drop >= 0
+        donor = np.where(downhill, a, b)
+        receiver = np.where(downhill, b, a)
+        requested = (interval / substeps) * np.where(downhill, forward, reverse) * np.abs(head_drop)
+        outgoing = np.bincount(donor, weights=requested, minlength=water.size)
+        sent = np.minimum(water, outgoing)
+        # On equal-area cells, the same transferred depth represents the same
+        # volume at both ends. Keep the donor's unspent water exactly nonnegative.
+        fraction = np.divide(sent, outgoing, out=np.zeros_like(water), where=outgoing > 0)
+        incoming = np.bincount(receiver, weights=requested * fraction[donor], minlength=water.size)
+        water = (water - sent) + incoming
+    return water.reshape(dem.shape)
 
 
 def _apply_boundary(depth: np.ndarray, valid: np.ndarray, cell_area_m2: float, params: RoutingParameters) -> tuple[np.ndarray, float]:
@@ -198,6 +200,7 @@ def simulate(
     direction: np.ndarray | None = None,
     dx_m: float = 30.0,
     dy_m: float = 30.0,
+    spatial_runoff=None,
 ) -> SimulationResult:
     """Run a deterministic conservative time-stepped surface-water simulation."""
     params.validate()
@@ -215,8 +218,9 @@ def simulate(
     total_boundary = 0.0
     maximum_routing_residual = 0.0
     states: list[dict] = []
-    max_depth = depth.copy()
-    max_value = float(np.max(max_depth[valid])) if np.any(valid) else 0.0
+    # Products summarize the saved step-end states, including the first dry frame.
+    max_depth = np.zeros_like(depth)
+    max_value = 0.0
     max_index: int | None = None
     max_timestamp: str | None = None
     infiltration_limit_m = params.infiltration_rate_mm_per_hour / 1000.0 * params.timestep_seconds / 3600.0
@@ -230,9 +234,10 @@ def simulate(
         rainfall = rainfall.copy()
         rainfall[~valid] = 0.0
         rainfall_volume = float(np.sum(rainfall * cell_area_m2))
-        effective_runoff = rainfall * params.runoff_coefficient
+        effective_runoff = rainfall if spatial_runoff is not None else rainfall * params.runoff_coefficient
         coefficient_loss = rainfall - effective_runoff
-        infiltration = np.minimum(effective_runoff, infiltration_limit_m)
+        infiltration = (spatial_runoff.infiltration(rainfall, params.timestep_seconds)
+                        if spatial_runoff is not None else np.minimum(effective_runoff, infiltration_limit_m))
         surface_input = effective_runoff - infiltration
         depth += surface_input
         depth[~valid] = 0.0
@@ -260,9 +265,9 @@ def simulate(
         if abs(surface_residual) > params.mass_balance_tolerance_m3:
             raise MassBalanceError(f"Surface-input balance residual {surface_residual} m3 exceeds tolerance {params.mass_balance_tolerance_m3} m3 at step {index}")
         step_max = float(np.max(depth[valid])) if np.any(valid) else 0.0
-        if step_max > max_value:
+        np.maximum(max_depth, depth, out=max_depth)
+        if max_index is None or step_max > max_value:
             max_value = step_max
-            max_depth = depth.copy()
             max_index = index
             max_timestamp = step.timestamp
         states.append({
