@@ -123,7 +123,7 @@ No filling or alteration of the DEM is performed. Cells with raw D8 code `0` are
 255 = nodata
 ```
 
-The GeoJSON contains the raw sink cells with elevation and classification properties. These are screening candidates only: the method cannot distinguish natural depressions, DEM artefacts, flat quantization effects, buildings, culverts, or engineered urban drainage. The low-point layer is retained on the full buffered grid, not cropped to the canonical bbox.
+The GeoJSON covers the buffered grid. Each point uses the full affine transform of `(column + 0.5, row + 0.5)` in EPSG:4326. The cell ID, zero-based row and column, elevation, sink class and neighbour count identify the source cell. The archived Phase 1 points lie half a native cell northwest of their centres. The assessment command below writes the corrected collection in a new directory and checks every coordinate and original property. All 2,187 points passed in Bellandur, including 68 strict minima, 2,030 interior flat/tied sinks and 89 boundary sinks. The existing drainage preview reads the archived layer for context. P4 selects its surface-connection candidates separately from native accumulation.
 
 ## Derivative QA and metadata
 
@@ -143,4 +143,26 @@ All derivative rasters use the buffered DEM’s 93 × 93 EPSG:4326 grid with one
 
 Slope has 368 nodata cells along the kernel border. Aspect also has undefined values on flats, for 1,350 nodata cells in total. [Phase 1 verification](../NEERKAWACH_PHASE_1_REPORT.md)
 
-The exact next step is P3 — Dynamic Surface-Water Routing, using these products as static terrain inputs. That phase must separately define how raw sinks, accumulation thresholds, rainfall and urban drainage constraints are handled.
+## Projected terrain for P3
+
+P3 derives `working-dem-strict-d8-v1` from the exact projected elevation raster used in the simulation. For each of its eight valid neighbours it divides the elevation drop by the centre-to-centre distance in metres, using both basis vectors of the raster affine. The largest strictly positive gradient wins. Equal positive gradients follow the order N, NE, E, SE, S, SW, W, NW. The direction codes match the native D8 convention above. Zero means no immediate descent. An excluded terrain cell stays NoData in every product.
+
+The depression raster classifies each terminal with fewer than eight valid neighbours as a boundary sink. Interior terminals with an equal neighbour are flat/tied sinks. The other interior terminals are strict minima. A separate raster labels connected groups of two or more exactly equal elevations using eight-neighbour connectivity. A group may include cells with their own downhill exits. Each other cell keeps its unresolved direction. Quantization, storage and urban structures can all affect the interpretation of these features.
+
+Each valid cell contributes one count to itself and to every cell on its downstream path. The accumulation routine rejects cycles and invalid receivers. Each terminal's upstream count must agree with the number of cells assigned to its terminal ID, `1 + row × width + column`. The area raster expresses counts in square metres using the absolute determinant of the metric affine. The terrain metadata records product checksums, masks, grid geometry and conventions. [Working terrain implementation](../scripts/data/working_terrain.py)
+
+### Bellandur catchment assessment
+
+Use a historical run's `terrain/terrain_hydrology.json` or a synthetic run's `input/terrain_hydrology.json` from the same Bellandur DEM. From the repository root, the following command reproduces the assessment in a fresh run directory.
+
+```powershell
+python -B scripts/data/assess_catchments.py --terrain-metadata data/runs/ebac9e5a-b83a-4033-8c29-5fd522fa774e/terrain/terrain_hydrology.json
+```
+
+The assessment writes `assessment/low_points.geojson` and `assessment/catchments.json`. The latter gives each candidate's provenance, zero-based working-grid cell, upstream count and area, and downstream terminal ID. It lists every terrain terminal and counts paths relative to both the canonical study polygon and the edge of valid buffered terrain. [Assessment implementation](../scripts/data/assess_catchments.py)
+
+Of the 8,914 valid projected cells, 7,625 have a strictly downhill receiver and 1,289 end a path. The ends comprise 163 strict minima, 1,072 interior flat/tied sinks and 54 boundary sinks. Terminal contributions partition the 8,022,600 m² valid buffer. The largest group comprises 140 cells or 126,000 m². Of 5,347 sources inside the study polygon, 564 paths touch its edge and 194 cross into the buffer. All end on valid terrain.
+
+An independent trace of the archived, nearest-neighbour-transferred directions found 2,258 terminals. Its largest terminal group comprised 67 cells or 60,300 m². Two source paths entered NoData. Among study-area sources, 457 paths touched the study edge and 160 crossed it. The archived accumulation raster contains resampled native counts. Tracing the two direction graphs on the same projected grid gives a comparable measure of provisional catchment area.
+
+P4 supplies 15 high-accumulation surface points with low-confidence nearest-node connections. Mapped government and OSM linework documents drain positions. The government drain endpoint `drn_n_00033` was selected by proximity to the study-box centre. Its containing cell has a terrain contribution of 900 m². Receiving-water connectivity and hydraulic direction remain unverified. All reported areas describe provisional surface contributions on the buffered DEM.

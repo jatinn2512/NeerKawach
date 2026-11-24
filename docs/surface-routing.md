@@ -9,15 +9,12 @@ The runner reads the canonical study-area definition from [`config/study_area.js
 - `data/dem/processed/bellandur_dem_buffered.tif`
 - `data/dem/terrain/slope.tif`
 - `data/dem/terrain/aspect.tif`
-- `data/dem/terrain/flow_direction.tif`
-- `data/dem/terrain/flow_accumulation.tif`
-- `data/dem/terrain/depressions.tif`
 
 The P2 inputs are checked for matching EPSG:4326 CRS, dimensions and affine transform before any reprojection.
 
 Physical calculations use EPSG:32643, WGS 84 / UTM zone 43N. Bengaluru is near 77.65°E, which places Bellandur in UTM zone 43N. This local projected CRS provides metre-based distances and square-metre cell areas without changing the canonical EPSG:4326 study-area definition. The transformation uses rasterio/GDAL reprojection; the original P1/P2 rasters remain unchanged.
 
-The working grid has 95 columns and 97 rows of 30 m cells in EPSG:32643. Bilinear reprojection writes the DEM as Float32. Other terrain layers use nearest-neighbour resampling. [Working grid metadata](../data/surface_routing/input/working_grid.json)
+The working grid has 95 columns and 97 rows of 30 m cells in EPSG:32643. Bilinear reprojection writes the DEM as Float32. Slope and aspect use nearest-neighbour resampling. P3 version 1.3 derives its D8 preference raster from the elevations and valid mask of that projected DEM. It also writes contributing-cell counts, contributing areas, sink classes, flat regions and provisional terminal IDs. The summary and run manifest record the DEM and direction checksums, affine, CRS and algorithm version. [Terrain methods and interpretation](terrain-processing.md#projected-terrain-for-p3)
 
 ## Rainfall interface
 
@@ -38,7 +35,7 @@ From the repository root, run the P3 engine on the published Task 2.4 event with
 python -B scripts/data/run_surface_routing.py --temporal-manifest data/rainfall/temporal/068d3d77a49c5602/manifest.json --event bellandur_2022-09-01
 ```
 
-The same manifest contains the alternative event `bellandur_2022-08-31`. Each invocation creates a new `data/runs/<run-id>/manifest.json` and writes its products in the neighbouring `results/` directory. The historical path reads the existing projected terrain and flow direction. Running the CLI without historical arguments selects the existing synthetic fixture and its normal output location.
+The same manifest contains the alternative event `bellandur_2022-08-31`. Each historical invocation uses the projected DEM identified by the published rainfall bundle and derives directions in `data/runs/<run-id>/terrain/`. Depth frames and the summary go in the neighbouring `results/` directory. Running the CLI without arguments selects the synthetic fixture and prepares its working grid in its own run directory.
 
 The adapter verifies the selected event, its checksummed temporal and spatial products, source labels and native pixels before starting P3. Each band holds allocated depth in mm for one 300-second interval. The adapter divides by 1,000 once to supply Float64 metres. A valid dry cell stays zero. P3 requires finite inputs everywhere, so the adapter represents an excluded terrain cell with the finite sentinel −1 outside the valid mask. The engine clears excluded cells before any rainfall arithmetic. A source-coverage gap on valid terrain stops the run.
 
@@ -46,7 +43,9 @@ Each input band has a relative start and end in seconds. A saved state and its `
 
 The pre-run rainfall check integrates the mm bands with the spatial product's covered area. P3 calculates a second total from its metre inputs and grid-cell area. The per-step and total comparisons use an absolute tolerance of 1e−7 m³. The model's gross balance has its own configured tolerance of 1e−6 m³. The manifest records both checks, the configuration's SHA-256 version, the input bands and files, and the checksums of the outputs. The native rainfall resolution is approximately 4 km. Each of the six five-minute allocations within a nominal half-hour has the same intensity.
 
-## Runoff formulation
+## Uniform fixture runoff formulation
+
+The default invocation retains the uniform engineering fixture. Pass a prepared manifest with `--surface-parameters` to use sub-cell land-cover fractions and topsoil capacity scenarios for either synthetic or historical rainfall. Each run records its active parameterization. [Spatial runoff equations, source inventory and Bellandur regressions](spatial-runoff.md)
 
 Parameters are explicit in [`config/surface_routing.json`](../config/surface_routing.json):
 
@@ -79,9 +78,11 @@ At every timestep, the current water-surface head is:
 head = DEM elevation + current water depth
 ```
 
-Each unique neighbouring cell pair is evaluated in the eight-neighbourhood. Water moves only from higher current head to lower current head. Potential exchange is proportional to head difference, cell area, and an explicit exchange fraction `min(0.5, timestep / routing_timescale)`. Transfers are calculated conservatively and scaled per source cell so total outflow cannot exceed the source cell's available water volume.
+P3 version 1.2 integrates a head-driven graph diffusion over the eight valid neighbours. For cell area (A) in m², centre distance (d) in m, routing timescale (T) in seconds and internal step (s) in seconds, the proposed exchange depth is `(s/T) × (A/d²) × p × |head difference|` metres. Moving this depth between two equal-area cells transfers the same volume at both ends. The donor is the cell with greater head. The dimensionless D8 factor `p` is 1.25 in its preferred direction and 1 elsewhere. On the square working grid an axial edge has twice the geometric weight of a diagonal edge.
 
-The reprojected D8 direction provides a 1.25 preference multiplier when a pair agrees with the static downslope direction, but water is not permanently routed along D8. Current water depth/head controls movement, allowing water to pool and redistribute in depressions.
+The earlier implementation calculated all eight transfers from one head field and limited only the donor's total volume. Several neighbours could each supply a large fraction of the same receiver's head deficit. In a closed basin the receiver could overfill, then empty on the next step. The global volume balance could still close.
+
+The corrected method sums the incident weights `(A/d²) × p` at **both** endpoints, using the larger of each edge's two possible directional weights. If the largest sum on the grid is `D`, one forcing interval uses `N = max(1, ceil(2 × Δt × D / T))` equal hydraulic substeps. Every donor in each substep divides its available water proportionally among its requested transfers when those requests exceed storage. Both endpoints use the same limited edge transfer. Water heads and flow directions are updated for the next substep. Rain and the configured boundary rule are applied once per forcing interval.
 
 Boundary behavior is explicit:
 
@@ -92,7 +93,7 @@ No drainage network, sewer connection, runoff coupling, or surface-to-drainage e
 
 ## Numerical stability and mass balance
 
-The exchange fraction is timestep-limited and every transfer is capped by available source volume. Depths are constrained to be non-negative. Redistribution is conservative; boundary outflow and modeled losses are tracked separately.
+The total incident exchange coefficient is at most one half at each cell, including receivers with several donors. Availability limiting can only reduce it. Each updated head is a convex combination of the local head and its neighbours, with at least half the weight retained locally. The symmetric exchange matrix for each realized substep has eigenvalues in [0, 1]. This damps the alternating mode while allowing a wet front to advance or a local depth to change direction as its neighbours drain. The substep count follows from the graph and the existing routing timescale. Dry cells supply zero water. Terrain NoData cells have no exchange edges.
 
 The accounting is reported in three linked stages so that no volume is counted twice or omitted:
 
@@ -114,27 +115,28 @@ The previous report appeared difficult to reconcile because it displayed effecti
 
 The reusable runner is [`scripts/data/run_surface_routing.py`](../scripts/data/run_surface_routing.py), with core numerical logic in [`scripts/data/surface_routing_core.py`](../scripts/data/surface_routing_core.py).
 
-- Projected working rasters: `data/surface_routing/input/`
-- Per-timestep depth GeoTIFFs: `data/surface_routing/results/depth/`
-- Maximum depth: [`data/surface_routing/results/max_depth.tif`](../data/surface_routing/results/max_depth.tif)
-- Summary: [`data/surface_routing/results/summary.json`](../data/surface_routing/results/summary.json)
-- QA report: [`data/surface_routing/results/p3_validation.json`](../data/surface_routing/results/p3_validation.json)
-- Lightweight PGM inspection previews: `data/surface_routing/results/preview/`
+- The `input/` directory in each synthetic run contains the working DEM and derived terrain. The `terrain/` directory in each historical run contains the derived terrain.
+- The `results/depth/` directory contains one GeoTIFF per saved timestep.
+- Since version 1.2, `max_depth.tif` and its preview contain the greatest saved depth **at each cell**. Cells can peak at different times. The GeoTIFF carries `STATISTIC=cellwise_maximum_over_saved_timesteps`, metres and the terrain mask.
+- The summary records the Float64 domain-wide peak, its first step index and its timestamp. `domain_peak_depth_file` identifies the complete timestamped depth raster at that instant. Float32 output can round nearby peaks to the same saved value.
+- The `results/` directory also holds `summary.json`, `p3_validation.json`, and the `preview/` directory of PGM images.
 
-The corrected synthetic fixture supplies 320,904 m³ of rainfall, of which 80,226 m³ is coefficient loss and 2,674.2 m³ is infiltration. Final surface storage is 238,003.8 m³. The closed boundary has zero outflow and the gross residual is below 0.000001 m³. Maximum depth is 1.30278 m. [Phase 1 verification](../NEERKAWACH_PHASE_1_REPORT.md)
+For a fresh 40 mm synthetic fixture, run `python -B scripts/data/run_surface_routing.py`. The existing `--run-scoped` flag also works. Each execution writes under a new `data/runs/<run-id>/`. Published Phase 1 and Phase 2 products remain available at their original fixed paths.
+
+On the Bellandur fixture the version 1.3 peak is 1.62810 m, compared with 1.63014 m in version 1.2. Rainfall is 320,904 m³, coefficient loss 80,226 m³, infiltration 2,674.2 m³, boundary outflow zero and final surface storage 238,003.8 m³. The version 1.3 historical replay peaks at 0.253389 m at the end of relative hour 19. Earlier P3 manifests identify version 1.1 in their result summaries. Their `max_depth.tif` is a single domain-peak snapshot, and the Phase 1 synthetic scalar peak was 1.30278 m.
 
 ## Tests
 
 Run:
 
 ```powershell
-python -m unittest discover -s scripts/data -p "test_*.py" -v
+python -B -m pytest -q scripts/data/test_working_terrain.py scripts/data/test_surface_routing.py scripts/data/test_historical_p3_rainfall.py scripts/data/test_dem_registration.py scripts/data/test_water_budget.py
 ```
 
-The test suite covers no-rain behavior, uniform-rain generation, slope movement, bowl accumulation, open-boundary outflow, component-level mass conservation with losses, non-negative depth, determinism, and projected raster consistency. The current run passes all 9 tests.
+The P3 tests cover equilibrium, dry recession, simultaneous donors, shallow films, directional transfer, mass conservation and timestep refinement against the exact two-cell relaxation. The historical and synthetic runner regressions independently reduce the saved depth rasters and compare their maxima, masks and peak frames.
 
 ## Limitations and next phase
 
-This is a lightweight raster prototype with simplified exchange physics, no calibrated roughness, no infiltration spatial variability, no rainfall downscaling, no observed sub-hourly forcing, and no drainage coupling. Static terrain derivatives are inputs, not a flood simulation by themselves. Synthetic forcing must not be presented as an observation-backed nowcast.
+This is a lightweight raster prototype with simplified exchange physics. Spatial mode uses provisional topsoil estimates on mapped pervious fractions. Local roughness, event moisture, surface-to-drain exchange and sub-hourly rainfall variability remain unresolved. Synthetic forcing is an engineering fixture.
 
 The exact next phase is P4 — Drainage Network Foundation.

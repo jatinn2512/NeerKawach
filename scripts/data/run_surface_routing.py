@@ -28,6 +28,8 @@ from surface_routing_core import RainfallStep, RoutingParameters, SimulationResu
 
 from run_manifest import file_record, record_period, simulation_run, validation_results
 from water_budget import surface_budgets
+from working_terrain import write_working_terrain
+from spatial_runoff import SCENARIOS, load_parameters
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -37,9 +39,6 @@ P2_INPUTS = {
     "dem": ROOT / "data" / "dem" / "processed" / "bellandur_dem_buffered.tif",
     "slope": ROOT / "data" / "dem" / "terrain" / "slope.tif",
     "aspect": ROOT / "data" / "dem" / "terrain" / "aspect.tif",
-    "flow_direction": ROOT / "data" / "dem" / "terrain" / "flow_direction.tif",
-    "flow_accumulation": ROOT / "data" / "dem" / "terrain" / "flow_accumulation.tif",
-    "depressions": ROOT / "data" / "dem" / "terrain" / "depressions.tif",
 }
 WORKING_DIR = ROOT / "data" / "surface_routing" / "input"
 RESULTS_DIR = ROOT / "data" / "surface_routing" / "results"
@@ -53,7 +52,7 @@ def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def prepare_projected_inputs() -> dict:
+def prepare_projected_inputs(working_dir: Path) -> dict:
     area = load_json(STUDY_AREA_PATH)
     routing_config = load_json(ROUTING_CONFIG_PATH)
     if area.get("crs") != "EPSG:4326":
@@ -88,7 +87,7 @@ def prepare_projected_inputs() -> dict:
             if not np.allclose(list(source.transform), source_grid["transform"], rtol=0, atol=1e-12):
                 raise ValueError(f"P2 {name} raster transform does not match the buffered DEM")
 
-    resampling = {"dem": Resampling.bilinear, "slope": Resampling.nearest, "aspect": Resampling.nearest, "flow_direction": Resampling.nearest, "flow_accumulation": Resampling.nearest, "depressions": Resampling.nearest}
+    resampling = {"dem": Resampling.bilinear, "slope": Resampling.nearest, "aspect": Resampling.nearest}
     projected = {}
     for name, path in P2_INPUTS.items():
         with rasterio.open(path) as source:
@@ -108,10 +107,10 @@ def prepare_projected_inputs() -> dict:
                 dst_nodata=destination_nodata,
                 resampling=resampling[name],
             )
-            output_path = WORKING_DIR / f"{name}_working.tif"
+            output_path = working_dir / f"{name}_working.tif"
             profile = source.profile.copy()
             profile.update(driver="GTiff", height=height, width=width, count=1, crs=WORKING_CRS, transform=dst_transform, dtype=dtype, nodata=destination_nodata, compress="deflate", predictor=3 if dtype.startswith("float") else 2, BIGTIFF="IF_SAFER")
-            WORKING_DIR.mkdir(parents=True, exist_ok=True)
+            working_dir.mkdir(parents=True, exist_ok=True)
             with rasterio.open(output_path, "w", **profile) as target:
                 target.write(destination, 1)
                 source_tags = source.tags()
@@ -120,7 +119,7 @@ def prepare_projected_inputs() -> dict:
                                    RESAMPLING=resampling[name].name, PROCESSING="P3 projected working input")
             projected[name] = {"file": str(output_path.relative_to(ROOT)).replace("\\", "/"), "dtype": dtype, "nodata": destination_nodata}
 
-    with rasterio.open(WORKING_DIR / "dem_working.tif") as dataset:
+    with rasterio.open(working_dir / "dem_working.tif") as dataset:
         grid = {
             "crs": WORKING_CRS,
             "width": dataset.width,
@@ -130,8 +129,10 @@ def prepare_projected_inputs() -> dict:
             "extent": {"min_x": dataset.bounds.left, "min_y": dataset.bounds.bottom, "max_x": dataset.bounds.right, "max_y": dataset.bounds.top},
             "cell_area_m2": abs(dataset.transform.a * dataset.transform.e),
         }
-    (WORKING_DIR / "working_grid.json").write_text(json.dumps({"source_grid": source_grid, "working_grid": grid, "working_crs_reason": "UTM zone 43N is the appropriate local projected CRS for Bengaluru longitude ~77.65E and provides metre-based distance/area calculations without changing the canonical EPSG:4326 study-area definition.", "outputs": projected}, indent=2) + "\n", encoding="utf-8")
-    return {"area": area, "grid": grid, "projected": projected}
+    terrain = write_working_terrain(ROOT, working_dir / "dem_working.tif", working_dir)
+    projected.update(terrain["products"])
+    (working_dir / "working_grid.json").write_text(json.dumps({"source_grid": source_grid, "working_grid": grid, "working_crs_reason": "UTM zone 43N is the appropriate local projected CRS for Bengaluru longitude ~77.65E and provides metre-based distance/area calculations without changing the canonical EPSG:4326 study-area definition.", "outputs": projected}, indent=2) + "\n", encoding="utf-8")
+    return {"area": area, "grid": grid, "projected": projected, "terrain": terrain}
 
 
 def uniform_steps(payload: dict, shape: tuple[int, int]) -> tuple[str, float, list[RainfallStep]]:
@@ -238,6 +239,8 @@ def write_pgm(path: Path, values: np.ndarray, nodata: float | None = None) -> No
 
 
 def run(args: argparse.Namespace) -> dict:
+    if (getattr(args, "soil_scenario", None) or getattr(args, "missing_soil", None)) and not getattr(args, "surface_parameters", None):
+        raise ValueError("A soil sensitivity scenario requires a spatial parameter manifest")
     if getattr(args, "temporal_manifest", None) is not None or getattr(args, "event", None) is not None:
         if (not getattr(args, "temporal_manifest", None) or not getattr(args, "event", None)
                 or getattr(args, "rainfall", None) is not None or getattr(args, "rainfall_timestep_seconds", None) is not None):
@@ -245,15 +248,21 @@ def run(args: argparse.Namespace) -> dict:
         return run_historical(args)
     if getattr(args, "rainfall", None) is None:
         args.rainfall = ROOT / "data/surface_routing/tests/synthetic_rainfall.json"
+    run_id = str(uuid4())
+    run_dir = ROOT / "data/runs" / run_id
+    working_dir = run_dir / "input"
+    results_dir = run_dir / "results"
     inputs = [*P2_INPUTS.values(), Path(args.rainfall)]
-    with simulation_run(ROOT, "P3", inputs, [WORKING_DIR, RESULTS_DIR],
-                        [STUDY_AREA_PATH, ROUTING_CONFIG_PATH]) as manifest:
-        summary = _run(args, manifest["run_id"])
+    with simulation_run(ROOT, "P3", inputs, [working_dir, results_dir],
+                        [STUDY_AREA_PATH, ROUTING_CONFIG_PATH], run_id=run_id) as manifest:
+        summary = _run(args, run_id, results_dir=results_dir, working_dir=working_dir)
+        manifest["terrain_hydrology"] = summary["terrain_hydrology"]
+        manifest["surface_parameterization"] = summary["surface_parameterization"]
         dt = summary["parameters"]["timestep_seconds"]
         times = [s["timestamp"] for s in summary["time_series"]]
         record_period(manifest, times, dt)
         manifest["configuration"]["rainfall"] = summary["rainfall"]
-        checks = load_json(RESULTS_DIR / "p3_validation.json")
+        checks = load_json(results_dir / "p3_validation.json")
         validation_results(manifest, checks["checks"])
         validation_results(manifest, {k: v for k, v in checks["accounting_checks"].items()
                                       if k != "routing_internal_transfers_conservative"})
@@ -265,8 +274,9 @@ def run_historical(args: argparse.Namespace) -> dict:
 
     run_id = str(uuid4())
     results = ROOT / "data/runs" / run_id / "results"
+    terrain_dir = results.parent / "terrain"
     bundle = Path(args.temporal_manifest).resolve()
-    with simulation_run(ROOT, "P3", [], [results], [STUDY_AREA_PATH, ROUTING_CONFIG_PATH], run_id=run_id) as record:
+    with simulation_run(ROOT, "P3", [], [results, terrain_dir], [STUDY_AREA_PATH, ROUTING_CONFIG_PATH], run_id=run_id) as record:
         record["forcing_mode"] = "historical_observation_derived"
         record["event_id"] = args.event
         record["configuration"]["surface_routing_version_sha256"] = next(
@@ -280,7 +290,9 @@ def run_historical(args: argparse.Namespace) -> dict:
                     record["inputs"].append(file_record(ROOT, path))
             record["configuration"]["rainfall"] = forcing.metadata
             record["configuration"]["duration_seconds"] = forcing.metadata["relative_end_seconds"]
-            summary = _run(args, run_id, forcing, results)
+            summary = _run(args, run_id, forcing, results, terrain_dir)
+            record["terrain_hydrology"] = summary["terrain_hydrology"]
+            record["surface_parameterization"] = summary["surface_parameterization"]
             checks = load_json(results / "p3_validation.json")
             validation_results(record, checks["checks"])
             validation_results(record, checks["accounting_checks"])
@@ -297,21 +309,29 @@ def run_historical(args: argparse.Namespace) -> dict:
     return summary
 
 
-def _run(args: argparse.Namespace, run_id: str, forcing=None, results_dir=None) -> dict:
-    grid = forcing.grid if forcing else prepare_projected_inputs()["grid"]
-    results_dir = results_dir or RESULTS_DIR
+def _run(args: argparse.Namespace, run_id: str, forcing=None, results_dir=None, working_dir=None) -> dict:
+    if results_dir is None or working_dir is None:
+        raise ValueError("P3 products require run-specific output directories")
+    if forcing:
+        grid = forcing.grid
+        dem_path = forcing.dem_path
+        terrain = write_working_terrain(ROOT, dem_path, working_dir)
+    else:
+        prepared = prepare_projected_inputs(working_dir)
+        grid, terrain = prepared["grid"], prepared["terrain"]
+        dem_path = working_dir / "dem_working.tif"
     depth_dir, preview_dir = results_dir / "depth", results_dir / "preview"
-    dem_path = forcing.dem_path if forcing else WORKING_DIR / "dem_working.tif"
-    direction_path = forcing.direction_path if forcing else WORKING_DIR / "flow_direction_working.tif"
+    direction_path = ROOT / terrain["products"]["flow_direction"]["file"]
     with rasterio.open(dem_path) as dem_dataset:
         dem = dem_dataset.read(1).astype(np.float64)
         dem_nodata = dem_dataset.nodata
         valid = np.isfinite(dem) & (dem != dem_nodata)
-        if forcing:
-            valid &= dem_dataset.read_masks(1) != 0
+        valid &= dem_dataset.read_masks(1) != 0
+        transform, crs = dem_dataset.transform, dem_dataset.crs
     with rasterio.open(direction_path) as direction_dataset:
         direction = direction_dataset.read(1)
-        if direction.shape != dem.shape:
+        if (direction.shape != dem.shape or direction_dataset.transform != transform or direction_dataset.crs != crs
+                or not np.array_equal(direction_dataset.read_masks(1) != 0, valid)):
             raise ValueError("Projected flow direction is not aligned with projected DEM")
     if forcing:
         rainfall_metadata = forcing.metadata
@@ -322,7 +342,15 @@ def _run(args: argparse.Namespace, run_id: str, forcing=None, results_dir=None) 
     params = RoutingParameters(**{key: config[key] for key in RoutingParameters.__dataclass_fields__})
     if abs(params.timestep_seconds - forcing_timestep) > 1e-9:
         raise ValueError("Rainfall timestep and routing timestep do not match")
-    result: SimulationResult = simulate(dem, valid, rainfall_steps, grid["cell_area_m2"], params, direction, grid["pixel_size_m"][0], grid["pixel_size_m"][1])
+    spatial = None
+    provenance = {"mode": "uniform", "runoff_coefficient": params.runoff_coefficient,
+                  "infiltration_rate_mm_per_hour": params.infiltration_rate_mm_per_hour}
+    if getattr(args, "surface_parameters", None):
+        spatial, provenance = load_parameters(ROOT, args.surface_parameters, dem_path,
+                                               getattr(args, "soil_scenario", None),
+                                               getattr(args, "missing_soil", None) or "zero-credit")
+    result: SimulationResult = simulate(dem, valid, rainfall_steps, grid["cell_area_m2"], params, direction,
+                                         grid["pixel_size_m"][0], grid["pixel_size_m"][1], spatial_runoff=spatial)
     tolerance = params.mass_balance_tolerance_m3
     accounting_checks = {
         "rainfall_equals_runoff_plus_coefficient_loss": abs(result.total_rainfall_input_m3 - (result.total_runoff_input_m3 + result.total_coefficient_loss_m3)) <= tolerance,
@@ -339,7 +367,8 @@ def _run(args: argparse.Namespace, run_id: str, forcing=None, results_dir=None) 
     preview_dir.mkdir(parents=True, exist_ok=True)
     for state in result.states:
         write_depth_raster(depth_dir / f"depth_{state['index']:04d}.tif", state["water_depth_m"], dem_path, {"TIMESTEP_INDEX": str(state["index"]), "TIMESTAMP": state["timestamp"]})
-    write_depth_raster(results_dir / "max_depth.tif", result.maximum_depth_m, dem_path, {"MAXIMUM_DEPTH_TIMESTAMP": result.maximum_depth_timestamp or "", "MAXIMUM_DEPTH_INDEX": str(result.maximum_depth_index if result.maximum_depth_index is not None else "")})
+    write_depth_raster(results_dir / "max_depth.tif", result.maximum_depth_m, dem_path,
+                       {"STATISTIC": "cellwise_maximum_over_saved_timesteps"})
     write_pgm(preview_dir / "dem_working.pgm", dem, dem_nodata)
     if result.states:
         write_pgm(preview_dir / "depth_t0000.pgm", result.states[0]["water_depth_m"])
@@ -349,13 +378,16 @@ def _run(args: argparse.Namespace, run_id: str, forcing=None, results_dir=None) 
 
     summary = {
         "run_id": run_id,
-        "processing_script": "p3-surface-routing-1.1.0",
+        "processing_script": "p3-surface-routing-1.4.0",
+        "surface_parameterization": provenance,
+        "terrain_hydrology": terrain,
         "processing_date_utc": datetime.now(timezone.utc).isoformat(),
         "study_area_config": str(STUDY_AREA_PATH.relative_to(ROOT)).replace("\\", "/"),
         "working_crs": grid["crs"],
         "working_grid": grid,
         "rainfall": rainfall_metadata,
-        "parameters": config,
+        "parameters": {k:v for k,v in config.items() if spatial is None or k not in
+                       ("runoff_coefficient", "infiltration_rate_mm_per_hour")},
         "source_dem": "data/dem/processed/bellandur_dem_buffered.tif",
         "steps": len(result.states),
         "initial_stored_water_m3": result.initial_stored_water_m3,
@@ -382,6 +414,7 @@ def _run(args: argparse.Namespace, run_id: str, forcing=None, results_dir=None) 
         "maximum_depth_m": result.maximum_depth_value_m,
         "maximum_depth_index": result.maximum_depth_index,
         "maximum_depth_timestamp": result.maximum_depth_timestamp,
+        "domain_peak_depth_file": (depth_dir / f"depth_{result.maximum_depth_index:04d}.tif").relative_to(ROOT).as_posix(),
         "time_series": [{key: state[key] for key in ("index", "timestamp", "rainfall_input_m3", "runoff_input_m3", "coefficient_loss_m3", "infiltration_loss_m3", "surface_water_input_m3", "modeled_losses_m3", "boundary_outflow_m3", "stored_surface_water_m3", "mass_balance_residual_m3", "surface_balance_residual_m3", "routing_balance_residual_m3")} | {"depth_file": str((depth_dir / f"depth_{state['index']:04d}.tif").relative_to(ROOT)).replace("\\", "/")} for state in result.states],
         "outputs": {"depth_directory": str(depth_dir.relative_to(ROOT)).replace("\\", "/"), "max_depth": str((results_dir / "max_depth.tif").relative_to(ROOT)).replace("\\", "/"), "preview_directory": str(preview_dir.relative_to(ROOT)).replace("\\", "/")},
         "scientific_status": "prototype dynamic surface routing; not calibrated, not a full 2D hydrodynamic urban flood model, and not an observation-backed nowcast",
@@ -406,7 +439,8 @@ def _run(args: argparse.Namespace, run_id: str, forcing=None, results_dir=None) 
             state.update({k:band[k] for k in ("band", "source_label", "timestamp_utc", "relative_start_seconds", "relative_end_seconds")})
     (results_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     validation = {
-        "simulation_parameters": config,
+        "simulation_parameters": summary["parameters"],
+        "surface_parameter_mode": provenance["mode"],
         "rainfall_source": source,
         "timestep_seconds": params.timestep_seconds,
         "number_of_steps": len(result.states),
@@ -448,6 +482,12 @@ def main() -> None:
     inputs.add_argument("--temporal-manifest", type=Path, help="published Task 2.4 temporal bundle manifest")
     parser.add_argument("--event", help="historical event ID in the selected temporal bundle")
     parser.add_argument("--rainfall-timestep-seconds", type=float)
+    parser.add_argument("--surface-parameters", type=Path, help="prepared spatial runoff parameter manifest")
+    parser.add_argument("--soil-scenario", choices=SCENARIOS, help="pervious soil capacity sensitivity scenario")
+    parser.add_argument("--missing-soil", choices=("zero-credit", "rainfall-limit"),
+                        help="infiltration bound for pervious land without texture support")
+    parser.add_argument("--run-scoped", action="store_true",
+                        help="accepted for compatibility; all P3 terrain and results are now run-specific")
     args = parser.parse_args()
     if bool(args.temporal_manifest) != bool(args.event) or (args.temporal_manifest and args.rainfall_timestep_seconds is not None):
         parser.error("use --temporal-manifest and --event together, with the timestep supplied by the event")

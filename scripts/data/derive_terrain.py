@@ -35,7 +35,7 @@ FLOW_ACCUMULATION_PATH = OUTPUT_DIR / "flow_accumulation.tif"
 DEPRESSIONS_PATH = OUTPUT_DIR / "depressions.tif"
 LOW_POINTS_PATH = OUTPUT_DIR / "low_points.geojson"
 
-SCRIPT_VERSION = "p2-terrain-derivatives-1.0.0"
+SCRIPT_VERSION = "p2-terrain-derivatives-1.1.0"
 FLOAT_NODATA = -9999.0
 INTEGER_NODATA = -9999
 DEPRESSION_NODATA = 255
@@ -168,9 +168,17 @@ def derive_slope_aspect(dem: np.ndarray, valid: np.ndarray, dx_m: float, dy_m: f
 
 
 def derive_flow_direction(dem: np.ndarray, valid: np.ndarray, dx_m: float, dy_m: float) -> np.ndarray:
+    return steepest_d8(dem, valid, Affine.scale(dx_m, -dy_m))
+
+
+def steepest_d8(dem: np.ndarray, valid: np.ndarray, metric_transform: Affine) -> np.ndarray:
+    """Steepest positive drop per metre, with ties in D8_DIRECTIONS order."""
     rows, cols = dem.shape
     direction = np.full((rows, cols), INTEGER_NODATA, dtype=np.int16)
-    distances = {(dr, dc): math.hypot(dc * dx_m, dr * dy_m) for dr, dc, _, _ in D8_DIRECTIONS}
+    a, b, _, d, e, _ = metric_transform[:6]
+    if not math.isfinite(a*e-b*d) or a*e == b*d:
+        raise ValueError("Singular or nonfinite metric affine")
+    distances = {(dr, dc): math.hypot(a*dc + b*dr, d*dc + e*dr) for dr, dc, _, _ in D8_DIRECTIONS}
     for row, col in zip(*np.where(valid)):
         best_gradient = 0.0
         best_code = 0
@@ -179,7 +187,7 @@ def derive_flow_direction(dem: np.ndarray, valid: np.ndarray, dx_m: float, dy_m:
             nr, nc = row + dr, col + dc
             if nr < 0 or nr >= rows or nc < 0 or nc >= cols or not valid[nr, nc]:
                 continue
-            drop = elevation - dem[nr, nc]
+            drop = float(elevation) - float(dem[nr, nc])
             gradient = drop / distances[(dr, dc)]
             if gradient > best_gradient:
                 best_gradient = gradient
@@ -188,27 +196,31 @@ def derive_flow_direction(dem: np.ndarray, valid: np.ndarray, dx_m: float, dy_m:
     return direction
 
 
-def derive_flow_accumulation(direction: np.ndarray, valid: np.ndarray) -> np.ndarray:
+def contributing_cells_and_terminals(direction: np.ndarray, valid: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Count contributors and label each path by its 1-based row-major terminal cell."""
     rows, cols = direction.shape
-    accumulation = np.zeros((rows, cols), dtype=np.float64)
-    accumulation[valid] = 1.0
+    accumulation = np.full((rows, cols), INTEGER_NODATA, dtype=np.int32)
+    accumulation[valid] = 1
     indegree = np.zeros((rows, cols), dtype=np.int32)
     downstream = np.full((rows, cols, 2), -1, dtype=np.int32)
     for row, col in zip(*np.where(valid)):
         code = int(direction[row, col])
         if code == 0:
             continue
+        if code not in D8_BY_CODE:
+            raise ValueError(f"Invalid D8 code {code} at {(row, col)}")
         dr, dc, _ = D8_BY_CODE[code]
         nr, nc = row + dr, col + dc
-        if 0 <= nr < rows and 0 <= nc < cols and valid[nr, nc]:
-            downstream[row, col] = (nr, nc)
-            indegree[nr, nc] += 1
+        if not (0 <= nr < rows and 0 <= nc < cols and valid[nr, nc]):
+            raise ValueError(f"D8 edge leaves valid terrain at {(row, col)}")
+        downstream[row, col] = (nr, nc)
+        indegree[nr, nc] += 1
 
     queue = deque((int(row), int(col)) for row, col in zip(*np.where(valid & (indegree == 0))))
-    processed = 0
+    order = []
     while queue:
         row, col = queue.popleft()
-        processed += 1
+        order.append((row, col))
         nr, nc = downstream[row, col]
         if nr < 0:
             continue
@@ -216,11 +228,22 @@ def derive_flow_accumulation(direction: np.ndarray, valid: np.ndarray) -> np.nda
         indegree[nr, nc] -= 1
         if indegree[nr, nc] == 0:
             queue.append((int(nr), int(nc)))
-    if processed != int(valid.sum()):
-        raise ValueError("D8 graph did not resolve acyclically; accumulation was not completed")
-    output = np.full((rows, cols), FLOAT_NODATA, dtype=np.float32)
-    output[valid] = accumulation[valid].astype(np.float32)
-    return output
+    if len(order) != int(valid.sum()):
+        raise ValueError("Directed cycle in D8 graph")
+    terminal = np.full(direction.shape, INTEGER_NODATA, dtype=np.int32)
+    for row, col in reversed(order):
+        nr, nc = downstream[row, col]
+        terminal[row, col] = row * cols + col + 1 if nr < 0 else terminal[nr, nc]
+    sinks = valid & (direction == 0)
+    ids, counts = np.unique(terminal[valid], return_counts=True)
+    if not (np.array_equal(ids, terminal[sinks]) and np.array_equal(counts, accumulation[sinks])):
+        raise ValueError("D8 terminal areas disagree with the upstream counts")
+    return accumulation, terminal
+
+
+def derive_flow_accumulation(direction: np.ndarray, valid: np.ndarray) -> np.ndarray:
+    counts, _ = contributing_cells_and_terminals(direction, valid)
+    return counts.astype(np.float32)
 
 
 def classify_depressions(dem: np.ndarray, valid: np.ndarray, direction: np.ndarray) -> tuple[np.ndarray, list[dict]]:
@@ -235,7 +258,7 @@ def classify_depressions(dem: np.ndarray, valid: np.ndarray, direction: np.ndarr
             if 0 <= nr < rows and 0 <= nc < cols and valid[nr, nc]:
                 neighbors.append(float(dem[nr, nc]))
         is_boundary = len(neighbors) < 8
-        has_equal = any(math.isclose(value, float(dem[row, col]), abs_tol=0.0) for value in neighbors)
+        has_equal = float(dem[row, col]) in neighbors
         if is_boundary:
             class_code, sink_type = 3, "boundary_sink"
         elif has_equal:
@@ -247,16 +270,14 @@ def classify_depressions(dem: np.ndarray, valid: np.ndarray, direction: np.ndarr
     return classes, features
 
 
-def write_low_points(features: list[dict], transform: Affine, bbox: dict) -> None:
+def write_low_points(features: list[dict], transform: Affine, bbox: dict, path: Path = LOW_POINTS_PATH) -> None:
     geojson_features = []
     for feature in features:
-        # The prepared DEM is AREA_OR_POINT=Point; use the source posting
-        # coordinate represented by the affine transform.
-        longitude, latitude = transform * (feature["column"], feature["row"])
+        longitude, latitude = transform * (feature["column"] + 0.5, feature["row"] + 0.5)
         geojson_features.append({
             "type": "Feature",
             "id": f"sink-{feature['row']}-{feature['column']}",
-            "properties": {key: value for key, value in feature.items() if key not in {"row", "column"}},
+            "properties": dict(feature),
             "geometry": {"type": "Point", "coordinates": [longitude, latitude]},
         })
     payload = {
@@ -266,7 +287,7 @@ def write_low_points(features: list[dict], transform: Affine, bbox: dict) -> Non
         "crs": {"type": "name", "properties": {"name": "EPSG:4326"}},
         "features": geojson_features,
     }
-    LOW_POINTS_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def raster_summary(path: Path, valid_range: tuple[float, float] | None = None) -> dict:
@@ -341,7 +362,7 @@ def main() -> None:
         raster_summary(DEPRESSIONS_PATH, (0.0, 3.0)),
     ]
     validate_alignment(input_info, summaries)
-    if len(low_points) != int(np.count_nonzero(depression_classes > 0)):
+    if len(low_points) != int(np.count_nonzero(valid & (depression_classes > 0))):
         raise ValueError("Low-point vector count does not match depression raster")
 
     report = {
