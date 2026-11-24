@@ -61,8 +61,10 @@ def native_soils(bundle,dem,valid,names):
     rows,cols = np.where(valid)
     x,y = rasterio.transform.xy(dem.transform,rows,cols)
     arrays = []
+    geometric = []
     for name in names:
         values = np.full(valid.sum(),np.nan)
+        inside_any_tile = np.zeros(valid.sum(), dtype=bool)
         for ref in bundle["raw_tiles"][name]:
             with rasterio.open(ROOT/ref["path"]) as native:
                 xx,yy = transform(dem.crs,native.crs,x,y)
@@ -70,9 +72,11 @@ def native_soils(bundle,dem,valid,names):
                 inside = (rr>=0)&(rr<native.height)&(cc>=0)&(cc<native.width)
                 arr = native.read(1,masked=True).astype(float).filled(np.nan)
                 values[inside] = arr[rr[inside],cc[inside]]
+                inside_any_tile[inside] = True
         divisor = 100 if name.startswith("bdod") else 10
         arrays.append(values/divisor)
-    return np.array(arrays)
+        geometric.append(inside_any_tile)
+    return np.array(arrays), np.array(geometric)
 
 
 def verify(synthetic_run,historical_run):
@@ -107,22 +111,32 @@ def verify(synthetic_run,historical_run):
         np.testing.assert_allclose(saved.sum(axis=0),1.,rtol=0,atol=1e-12)
         assert np.all((saved>=0)&(saved<=1+1e-12))
         soil = product("soil_attributes")
-        native = native_soils(bundle,dem,valid,soil.descriptions)
+        native, native_geometry = native_soils(bundle,dem,valid,soil.descriptions)
         np.testing.assert_allclose(soil.read(masked=True).filled(np.nan)[:,valid],native,atol=1e-12,rtol=0)
         assert not (soil.read_masks()[:,~valid]!=0).any()
         pervious = fractions[names.index("vegetated")]+fractions[names.index("bare_sparse")]
         runoff, rates, support = product("runoff"),product("infiltration"),product("soil_support")
+        coverage = product("soil_coverage")
         evidence = product("paved_road_evidence")
-        for ds in (runoff,rates,support,evidence):
+        for ds in (runoff,rates,support,evidence,coverage):
             assert np.all((ds.read_masks()>0)==valid)
         np.testing.assert_allclose(runoff.read()[:,valid],[1-pervious,pervious],atol=2e-9,rtol=0)
+        scenario_indices = [soil.descriptions.index(bundle["assumptions"]["scenarios"][scenario])
+                            for scenario in rates.descriptions]
+        scenario_known = np.logical_and.reduce([np.isfinite(native[index]) for index in scenario_indices])
+        scenario_geometry = np.logical_and.reduce([native_geometry[index] for index in scenario_indices])
         for i,scenario in enumerate(rates.descriptions):
             sand = native[soil.descriptions.index(bundle["assumptions"]["scenarios"][scenario])]
-            known = np.isfinite(sand)
+            known = scenario_known
             # Independent form in cm/day, converted to mm/h.
             k = np.where(known,60.96*10**(-.884+.0153*sand)*10/24,0)
             np.testing.assert_array_equal(support.read(i+1)[valid],known)
             np.testing.assert_allclose(rates.read(i+1)[valid],k,rtol=1e-13)
+        expected_provenance = np.where(scenario_known, 1, np.where(scenario_geometry, 2, 3))
+        assert coverage.descriptions == ("sand_geometric_coverage", "sand_property_support", "infiltration_provenance_code")
+        np.testing.assert_array_equal(coverage.read(1)[valid], scenario_geometry)
+        np.testing.assert_array_equal(coverage.read(2)[valid], scenario_known)
+        np.testing.assert_array_equal(coverage.read(3)[valid], expected_provenance)
         report = {"max_fraction_error":float(np.max(abs(saved-fractions))),
                   "max_fraction_sum_error":float(np.max(abs(saved.sum(axis=0)-1))),
                   "class_area_m2":dict(zip(names,(fractions.sum(axis=1)*area).tolist())), "runs":[]}

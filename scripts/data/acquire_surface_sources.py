@@ -8,12 +8,12 @@ from pathlib import Path
 from uuid import uuid4
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
-from urllib.error import HTTPError
 import xml.etree.ElementTree as ET
 
+import numpy as np
 import rasterio
 from affine import Affine
-from rasterio.warp import transform_bounds
+from rasterio.warp import transform, transform_bounds
 from rasterio.windows import Window, from_bounds
 
 from run_manifest import checksum
@@ -80,6 +80,38 @@ def native_cover_window(folder):
                       "extraction": "Native pixel window of the provider COG, read without resampling"}
 
 
+def soil_vrt_url(key):
+    """Return the authoritative mosaic index, never a guessed individual tile."""
+    property_name = key.split("_")[0]
+    return f"{ISRIC}{property_name}/{key}.vrt"
+
+
+def intersecting_vrt_tiles(vrt_path):
+    """Return VRT sources whose declared destination rectangles meet the DEM.
+
+    SoilGrids distributes a global mosaic through a VRT plus many GeoTIFFs.
+    Selecting one tile by name silently turns a tile-edge acquisition mistake
+    into apparent soil NoData, so the VRT is the authority for selection.
+    """
+    root = ET.parse(vrt_path).getroot()
+    affine = Affine.from_gdal(*map(float, root.findtext("GeoTransform").split(",")))
+    with rasterio.open(DEM) as dem:
+        bounds = transform_bounds(dem.crs, root.findtext("SRS"), *dem.bounds, densify_pts=41)
+    window = from_bounds(*bounds, transform=affine)
+    selected = []
+    for source in root.findall(".//ComplexSource") + root.findall(".//SimpleSource"):
+        rect = source.find("DstRect")
+        filename = source.findtext("SourceFilename")
+        if rect is None or not filename:
+            continue
+        x, y, w, h = (float(rect.get(name)) for name in ("xOff", "yOff", "xSize", "ySize"))
+        if x < window.col_off + window.width and x+w > window.col_off and y < window.row_off + window.height and y+h > window.row_off:
+            selected.append(filename)
+    if not selected:
+        raise ValueError(f"SoilGrids VRT contains no tile intersecting {DEM}")
+    return root, sorted(set(selected))
+
+
 def acquire(key, url, soil):
     target = RAW / key
     manifest = target / "source.json"
@@ -89,31 +121,14 @@ def acquire(key, url, soil):
             raise ValueError(f"Existing archive failed checksum verification: {target}")
         return manifest
     with publish_directory(target) as folder:
-        try:
-            path, origin = fetch(url, folder) if soil else native_cover_window(folder)
-        except HTTPError as exc:
-            if not soil or exc.code != 404:
-                raise
-            url = f"{ISRIC}{key.split('_')[0]}/{key}.vrt"
-            path, origin = fetch(url, folder)
+        path, origin = fetch(url, folder) if soil else native_cover_window(folder)
         files = [origin]
-        if soil and path.suffix == ".vrt":
-            vrt = ET.parse(path).getroot()
-            affine = Affine.from_gdal(*map(float, vrt.findtext("GeoTransform").split(",")))
-            with rasterio.open(DEM) as ds:
-                bounds = transform_bounds(ds.crs, vrt.findtext("SRS"), *ds.bounds, densify_pts=21)
-            window = from_bounds(*bounds, transform=affine)
-            for source in vrt.findall(".//VRTRasterBand/*"):
-                rect = source.find("DstRect")
-                if rect is None:
-                    continue
-                x, y, w, h = [float(rect.get(k)) for k in ("xOff", "yOff", "xSize", "ySize")]
-                if (x < window.col_off + window.width and x+w > window.col_off
-                        and y < window.row_off + window.height and y+h > window.row_off):
-                    _, item = fetch(urljoin(url, source.findtext("SourceFilename")), folder)
-                    files.append(item)
-            if len(files) == 1:
-                raise ValueError(f"No native tiles found for {key}")
+        selected_tiles = []
+        if soil:
+            _, selected_tiles = intersecting_vrt_tiles(path)
+            for filename in selected_tiles:
+                _, item = fetch(urljoin(url, filename), folder)
+                files.append(item)
         for item in files:
             f = folder / item["file"]
             item["sha256"] = checksum(f)
@@ -121,19 +136,31 @@ def acquire(key, url, soil):
                 with rasterio.open(f) as ds:
                     item.update(crs=ds.crs.to_wkt(), bounds=list(ds.bounds), shape=list(ds.shape),
                                 transform=list(ds.transform)[:6], nodata=ds.nodata, dtype=ds.dtypes[0])
-                    if soil and path.suffix == ".tif":
-                        with rasterio.open(DEM) as dem:
-                            west, south, east, north = transform_bounds(dem.crs, ds.crs, *dem.bounds, densify_pts=41)
-                        if not (ds.bounds.left <= west <= east <= ds.bounds.right
-                                and ds.bounds.bottom <= south <= north <= ds.bounds.top and ds.res == (250,250)):
-                            raise ValueError(f"Native SoilGrids tile does not cover the full working DEM: {url}")
+        if soil:
+            # Coverage is deliberately checked from the full selected mosaic,
+            # not required from each individual tile.
+            with rasterio.open(DEM) as dem:
+                rows, cols = np.where(dem.read_masks(1) != 0)
+                xs, ys = rasterio.transform.xy(dem.transform, rows, cols)
+            covered = np.zeros(len(rows), dtype=bool)
+            for item in files[1:]:
+                with rasterio.open(folder / item["file"]) as ds:
+                    # Transform centres rather than bounds: this exactly matches
+                    # preparation's native-pixel lookup support definition.
+                    tx, ty = transform(dem.crs, ds.crs, xs, ys)
+                    rr, cc = rasterio.transform.rowcol(ds.transform, tx, ty)
+                    covered |= ((rr >= 0) & (cc >= 0) & (rr < ds.height) & (cc < ds.width))
+            if not covered.all():
+                raise ValueError(f"SoilGrids VRT tile selection does not geometrically cover {int((~covered).sum())} valid DEM centres")
         record = {"key": key, "provider": "ISRIC" if soil else "ESA WorldCover Consortium",
                   "product": "SoilGrids 2.0" if soil else "WorldCover 2021 v200",
                   "reference": "https://docs.isric.org/globaldata/soilgrids/" if soil else
                                "https://doi.org/10.5281/zenodo.7254221",
                   "licence": "CC BY 4.0", "native_resolution_m": 250 if soil else 10,
                   "observation_period": "Multiyear soil-profile synthesis; no event date" if soil else "2021",
-                  "depth_cm": [0, 5] if soil else None, "files": files}
+                  "depth_cm": [0, 5] if soil else None, "files": files,
+                  "tile_selection": ("all VRT tiles intersecting the working DEM; provider NoData is retained" if soil else None),
+                  "selected_vrt_sources": selected_tiles if soil else None}
         (folder / "source.json").write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     return manifest
 
@@ -141,9 +168,7 @@ def acquire(key, url, soil):
 def main():
     jobs = [("worldcover_2021_v200", ESA, False)]
     for layer in SOIL_LAYERS:
-        # Bellandur intersects one 450 x 450 native tile in the ISRIC VRT index.
-        url = f"{ISRIC}{layer.split('_')[0]}/{layer}/tileSG-015-063/tileSG-015-063_4-2.tif"
-        jobs.append((layer, url, True))
+        jobs.append((layer, soil_vrt_url(layer), True))
     with ThreadPoolExecutor(max_workers=3) as pool:
         tasks = [pool.submit(acquire, *job) for job in jobs]
         for task in tasks:

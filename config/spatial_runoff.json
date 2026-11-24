@@ -1,5 +1,5 @@
 {
-  "version": "bellandur-fractional-rainfall-excess-v1",
+  "version": "bellandur-fractional-rainfall-excess-v2",
   "default_scenario": "mean_texture",
   "scenarios": {
     "low_capacity": "sand_0-5cm_Q0.05",
@@ -14,7 +14,7 @@
   },
   "texture_method": "Cosby et al. (1984), univariate sand regression. K in mm/h = 25.4 * 10^(-0.884 + 0.0153 * sand_percent).",
   "texture_reference": "https://doi.org/10.1029/WR020i006p00682",
-  "missing_soil_policy": "Zero infiltration credit on unsupported pervious soil is an upper-runoff scenario. Hydraulic capacity stays unknown.",
+  "missing_soil_policy": "Zero infiltration credit on unsupported pervious soil is an upper-runoff scenario. Hydraulic capacity stays unknown. The parameter bundle records whether unknown means provider NoData or incomplete source coverage.",
   "missing_soil_sensitivity": "The rainfall-limit scenario credits all current rain on the unsupported pervious fraction. Zero and available rainfall are mass-conservation bounds. Neither assigns a soil property.",
   "surface_assumptions": "Built-up is a sealed proxy. Confirmed paved area and permanent water retain rainfall at the surface. Vegetated and bare fractions share the topsoil capacity proxy. Other and missing land cover receive zero infiltration credit. Coefficient losses are zero across classes.",
   "limitations": "Soil texture predictions describe native topsoil support. Marginal sand quantiles span texture sensitivity only. Event wetness, compaction, groundwater, paved width, interception, impervious connectivity and lake levels are unknown."

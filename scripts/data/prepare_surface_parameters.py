@@ -90,8 +90,13 @@ def cosby_mm_h(sand_percent):
 
 
 def read_soil(paths, target, valid):
-    """Look up the original native cell containing each valid working-cell centre."""
+    """Look up native values and geometric support at working-cell centres.
+
+    `inside` distinguishes an archive/tile-coverage fault from a provider
+    NoData value.  It must remain separate from property validity.
+    """
     result = np.full(valid.shape, np.nan)
+    inside_any_tile = np.zeros(valid.shape, dtype=bool)
     rows, cols = np.where(valid)
     xs, ys = rasterio.transform.xy(target.transform, rows, cols)
     for path in paths:
@@ -105,7 +110,8 @@ def read_soil(paths, target, valid):
             win = Window(c.min(), r.min(), c.max()-c.min()+1, r.max()-r.min()+1)
             values = ds.read(1, window=win, masked=True).astype(float).filled(np.nan)
             result[rows[inside], cols[inside]] = values[r-r.min(), c-c.min()]
-    return result
+            inside_any_tile[rows[inside], cols[inside]] = True
+    return result, inside_any_tile
 
 
 def road_evidence(target, valid):
@@ -166,22 +172,39 @@ def prepare():
         save("runoff", [1-pervious, pervious], ["direct_surface_fraction","pervious_fraction"], ["1","1"])
         presence, roads = road_evidence(target, valid)
         save("paved_road_evidence", [presence], ["tagged_paved_centreline_presence"], ["1"])
-        soils, units = {}, []
+        soils, soil_geometry, units = {}, {}, []
         for layer in SOIL_LAYERS:
-            values, unit = soil_conversion(layer, read_soil(raw_files[layer], target, valid))
+            raw_values, geometric_support = read_soil(raw_files[layer], target, valid)
+            values, unit = soil_conversion(layer, raw_values)
             soils[layer] = values
+            soil_geometry[layer] = geometric_support
             units.append(unit)
         save("soil_attributes", list(soils.values()), list(soils), units)
+        scenario_layers = [config["scenarios"][scenario] for scenario in SCENARIOS]
+        # A selectable sensitivity scenario must not turn a missing quantile
+        # into an apparently supported capacity.  Support therefore requires
+        # all three sand predictions used by the published scenarios.
+        scenario_sand_supported = np.logical_and.reduce([np.isfinite(soils[layer]) for layer in scenario_layers])
+        scenario_sand_covered = np.logical_and.reduce([soil_geometry[layer] for layer in scenario_layers])
         capacities = []
         for scenario in SCENARIOS:
             sand = soils[config["scenarios"][scenario]]
             capacity = np.full(valid.shape, np.nan)
-            known = valid & np.isfinite(sand)
+            known = valid & scenario_sand_supported
             capacity[known] = cosby_mm_h(sand[known])
             capacities.append(capacity)
         # Zero infiltration credit on unsupported soil is the upper-runoff assumption.
         save("infiltration", np.nan_to_num(capacities), SCENARIOS, ["mm/h"]*len(SCENARIOS))
         save("soil_support", np.isfinite(capacities), SCENARIOS, ["1"]*len(SCENARIOS))
+        sand_source_covered = scenario_sand_covered
+        sand_supported = scenario_sand_supported
+        provenance = np.where(sand_supported, 1, np.where(sand_source_covered, 2, 3))
+        # 1 = SoilGrids-supported then pedotransfer-derived; 2 = provider
+        # NoData; 3 = source archive/tile coverage failure.  Codes 2/3 remain
+        # hydraulically unknown and are never substituted into a capacity.
+        save("soil_coverage", [sand_source_covered, sand_supported, provenance],
+             ["sand_geometric_coverage", "sand_property_support", "infiltration_provenance_code"],
+             ["1", "1", "1"])
         metadata = {"version": config["version"], "config": file_ref(CONFIG), "source_dem": file_ref(DEM),
                     "preparation_code": [file_ref(Path(__file__).resolve()),
                                          file_ref(ROOT/"scripts/data/acquire_surface_sources.py"),
@@ -191,6 +214,13 @@ def prepare():
                     "valid_cells": int(valid.sum()), "nodata_cells": int((~valid).sum()),
                     "class_mean_fractions": dict(zip(CLASSES,fractions[:,valid].mean(axis=1).tolist())),
                     "soil_valid_cells": {k:int(np.isfinite(v).sum()) for k,v in soils.items()},
+                    "soil_coverage": {"sand_source_supported_cells": int(sand_supported.sum()),
+                                      "sand_provider_nodata_cells": int((valid & sand_source_covered & ~sand_supported).sum()),
+                                      "sand_outside_acquired_tiles_cells": int((valid & ~sand_source_covered).sum()),
+                                      "infiltration_provenance_codes": {
+                                          "1": "SoilGrids 0-5 cm sand prediction; Cosby pedotransfer-derived capacity",
+                                          "2": "provider NoData; hydraulic capacity unknown",
+                                          "3": "outside acquired source tiles; acquisition failure, not soil NoData"}},
                     "soil_units": dict(zip(soils, units)),
                     "soil_ranges": {k: [float(np.nanmin(v)),float(np.nanmax(v))] if np.isfinite(v).any()
                                     else None for k,v in soils.items()}}

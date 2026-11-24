@@ -8,7 +8,8 @@ import rasterio
 from affine import Affine
 import run_surface_routing as runner
 
-from prepare_surface_parameters import cosby_mm_h, fraction_map, soil_conversion
+from prepare_surface_parameters import cosby_mm_h, fraction_map, read_soil, soil_conversion
+import acquire_surface_sources as acquire
 from run_manifest import checksum
 from spatial_runoff import CLASSES, SCENARIOS, SpatialRunoff, load_parameters
 from surface_routing_core import RoutingParameters, RainfallStep, simulate
@@ -47,6 +48,29 @@ def test_native_overlap_partial_coverage_and_area(tmp_path):
 def test_native_soil_units(variable, raw, expected, unit):
     value, actual_unit = soil_conversion(variable, raw)
     assert value == pytest.approx(expected) and actual_unit == unit
+
+
+def test_soil_lookup_separates_provider_nodata_from_missing_tile(tmp_path):
+    target = raster(tmp_path/"dem.tif", [[[1,1,1]]], Affine(30,0,0,0,-30,30))
+    native = raster(tmp_path/"soil.tif", [[[500,-9999]]], Affine(30,0,0,0,-30,30))
+    with rasterio.open(target) as dem:
+        values, geometry = read_soil([native], dem, dem.read_masks(1) > 0)
+    np.testing.assert_array_equal(geometry, [[True,True,False]])
+    np.testing.assert_allclose(values[0,:2], [500,np.nan], equal_nan=True)
+
+
+def test_vrt_selection_uses_all_intersecting_sources(tmp_path, monkeypatch):
+    dem = raster(tmp_path/"dem.tif", [[[1,1]]], Affine(100,0,0,0,-100,100), crs="EPSG:32643")
+    vrt = tmp_path/"soil.vrt"
+    vrt.write_text('''<VRTDataset rasterXSize="2" rasterYSize="1"><SRS>EPSG:32643</SRS>
+<GeoTransform>0,100,0,100,0,-100</GeoTransform><VRTRasterBand dataType="Int16" band="1">
+<ComplexSource><SourceFilename>a.tif</SourceFilename><DstRect xOff="0" yOff="0" xSize="1" ySize="1"/></ComplexSource>
+<ComplexSource><SourceFilename>b.tif</SourceFilename><DstRect xOff="1" yOff="0" xSize="1" ySize="1"/></ComplexSource>
+<ComplexSource><SourceFilename>elsewhere.tif</SourceFilename><DstRect xOff="99" yOff="0" xSize="1" ySize="1"/></ComplexSource>
+</VRTRasterBand></VRTDataset>''', encoding="utf-8")
+    monkeypatch.setattr(acquire, "DEM", dem)
+    _, selected = acquire.intersecting_vrt_tiles(vrt)
+    assert selected == ["a.tif", "b.tif"]
 
 
 def test_cosby_units_and_bounds():
@@ -106,7 +130,8 @@ def fixture_bundle(root, error, template=None):
     write("runoff",["direct_surface_fraction","pervious_fraction"],"1",[0,1])
     write("infiltration",SCENARIOS,"mm/h",[1,2,3])
     write("soil_support",SCENARIOS,"1",[1,1,1])
-    bundle = {"assumptions":cfg,"version":"bellandur-fractional-rainfall-excess-v1","source_dem":ref(dem),
+    write("soil_coverage",["sand_geometric_coverage","sand_property_support","infiltration_provenance_code"],"1",[1,1,1])
+    bundle = {"assumptions":cfg,"version":"bellandur-fractional-rainfall-excess-v2","source_dem":ref(dem),
               "sources":{"soil":ref(raw)},"raw_tiles":{"soil":[ref(raw)]},"products":products,
               "config":ref(root/"config.json"),"osm":ref(raw)}
     manifest = root/"manifest.json"
@@ -127,6 +152,19 @@ def test_registered_parameter_bundle(tmp_path, error):
         assert model.capacity_mm_h.tolist() == [[3.,0.]]
         assert record["parameter_manifest"]["sha256"] == checksum(manifest)
         assert record["scenario"] == "high_capacity" and record["raw_tiles"]["soil"][0]["sha256"] == checksum(tmp_path/"raw.bin")
+
+
+def test_unknown_soil_provenance_cannot_be_loaded_as_supported(tmp_path):
+    manifest, dem = fixture_bundle(tmp_path, None)
+    bundle = json.loads(manifest.read_text())
+    with rasterio.open(tmp_path/"soil_coverage.tif", "r+") as ds:
+        values = ds.read()
+        values[1, 0, 0] = 0  # claims unknown while the support raster remains 1
+        ds.write(values)
+    bundle["products"]["soil_coverage"]["sha256"] = checksum(tmp_path/"soil_coverage.tif")
+    manifest.write_text(json.dumps(bundle))
+    with pytest.raises(ValueError, match="Invalid surface partition or soil capacity"):
+        load_parameters(tmp_path, manifest, dem)
 
 
 @pytest.mark.parametrize("historical", [False, True])
